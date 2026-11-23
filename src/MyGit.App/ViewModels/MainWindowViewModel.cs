@@ -28,7 +28,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         AccountViewModel account,
         ChangesViewModel changes,
         SyncViewModel sync,
-        History.HistoryViewModel history)
+        History.HistoryViewModel history,
+        BranchesViewModel branches)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -38,6 +39,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Changes = changes;
         Sync = sync;
         History = history;
+        Branches = branches;
+        Branches.MessageRaised += ShowMessage;
+        Branches.RepositoryChanged += RefreshAsync;
         History.MessageRaised += ShowMessage;
         History.RepositoryChanged += RefreshAsync;
         Sync.MessageRaised += ShowMessage;
@@ -61,6 +65,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public SyncViewModel Sync { get; }
 
     public History.HistoryViewModel History { get; }
+
+    public BranchesViewModel Branches { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]

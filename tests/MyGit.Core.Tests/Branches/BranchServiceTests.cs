@@ -129,6 +129,12 @@ public sealed class BranchServiceTests : IAsyncLifetime
         Assert.Equal(SwitchOutcome.StashConflict, outcome);
         Assert.Equal("other", (await Git(Me, "branch", "--show-current")).StandardOutput.Trim());
         Assert.NotEmpty((await Git(Me, "stash", "list")).OutputLines); // nothing lost
+        Assert.Empty((await Git(Me, "status", "--porcelain")).OutputLines); // and no half-applied conflict left behind
+
+        await Git(Me, "checkout", "-q", "main");
+        await Git(Me, "stash", "pop");
+        Assert.Equal("my uncommitted edit", await File.ReadAllTextAsync(Path.Combine(Me, "readme.md")));
+        Assert.Equal("untracked notes", await File.ReadAllTextAsync(Path.Combine(Me, "notes.txt")));
     }
 
     [Fact]

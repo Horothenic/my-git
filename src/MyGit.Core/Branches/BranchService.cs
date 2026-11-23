@@ -201,6 +201,11 @@ public sealed partial class BranchService
             var pop = await _git.RunAsync(repositoryPath, ["stash", "pop"], cancellationToken: cancellationToken);
             if (!pop.Succeeded)
             {
+                // The changes clash with this branch. git leaves them half-applied with conflicts;
+                // undo that so the branch is clean. Nothing is lost: a failed pop keeps the stash, and
+                // everything uncommitted went into it before the switch.
+                await _git.RunAsync(repositoryPath, ["reset", "--hard", "--quiet"], cancellationToken: cancellationToken);
+                await _git.RunAsync(repositoryPath, ["clean", "-fd", "--quiet"], cancellationToken: cancellationToken);
                 return SwitchOutcome.StashConflict;
             }
         }
