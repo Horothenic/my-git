@@ -68,6 +68,13 @@ public sealed class DialogService : IDialogService
         return window.Choice;
     }
 
+    public async Task<NameDialogResult?> AskNameAsync(NameDialogOptions options)
+    {
+        var window = new NameWindow(options);
+        await window.ShowDialog(_owner);
+        return window.Result;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();

@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MyGit.App.Views.NameWindow"
+        Icon="/Assets/my-git.ico"
+        Width="440" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="22,20" Spacing="10">
+    <TextBlock x:Name="TitleText" FontWeight="SemiBold" FontSize="14" />
+    <TextBlock x:Name="DescriptionText" Classes="caption" FontSize="12" TextWrapping="Wrap" />
+    <TextBox x:Name="NameBox" />
+    <TextBlock x:Name="ErrorText" Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" IsVisible="False" />
+    <TextBox x:Name="MessageBox" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" IsVisible="False" />
+    <CheckBox x:Name="Option" IsVisible="False" />
+    <CheckBox x:Name="SecondOption" IsVisible="False" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+      <Button x:Name="CancelButton" Content="Cancel" IsCancel="True" />
+      <Button x:Name="ConfirmButton" Classes="accent" IsDefault="True" IsEnabled="False" />
+    </StackPanel>
+  </StackPanel>
+</Window>

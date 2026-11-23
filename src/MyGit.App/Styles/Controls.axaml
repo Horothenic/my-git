@@ -350,6 +350,62 @@
     </Style.Animations>
   </Style>
 
+  <!-- ===== History tab ===== -->
+
+  <Style Selector="ListBox.commits, ListBox.commit-files">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.commits ListBoxItem, ListBox.commit-files ListBoxItem">
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <Style Selector="ListBox.commit-files ListBoxItem">
+    <Setter Property="Padding" Value="10,4" />
+  </Style>
+
+  <!-- Branch / tag / HEAD labels on commits -->
+  <Style Selector="Border.ref">
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="5,0" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.ref TextBlock">
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+  <Style Selector="Border.ref.local">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Border.ref.local TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Border.ref.remote">
+    <Setter Property="Background" Value="{DynamicResource ToolbarHoverBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="Border.ref.remote TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.ref.tag">
+    <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.ref.tag TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.ref.tag mi|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="Border.ref.head">
+    <Setter Property="Background" Value="{DynamicResource DiffAddedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+  <Style Selector="Border.ref.head TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
   <!-- Red button for destructive confirmations -->
   <Style Selector="Button.danger">
     <Setter Property="Background" Value="{DynamicResource DangerBrush}" />

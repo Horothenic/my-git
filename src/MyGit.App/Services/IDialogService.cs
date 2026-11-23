@@ -16,4 +16,7 @@ public interface IDialogService
 
     /// <summary>Asks with several buttons. Returns the clicked index, or -1 if the dialog was closed.</summary>
     Task<int> ChooseAsync(string title, string message, IReadOnlyList<string> choices, int dangerIndex = -1);
+
+    /// <summary>Asks for a name (branch, tag). Returns null when cancelled.</summary>
+    Task<NameDialogResult?> AskNameAsync(NameDialogOptions options);
 }

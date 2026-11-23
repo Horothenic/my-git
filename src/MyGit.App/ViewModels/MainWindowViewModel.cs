@@ -27,7 +27,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IDialogService dialogs,
         AccountViewModel account,
         ChangesViewModel changes,
-        SyncViewModel sync)
+        SyncViewModel sync,
+        History.HistoryViewModel history)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -36,6 +37,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Account = account;
         Changes = changes;
         Sync = sync;
+        History = history;
+        History.MessageRaised += ShowMessage;
+        History.RepositoryChanged += RefreshAsync;
         Sync.MessageRaised += ShowMessage;
         Sync.RepositoryChanged += RefreshAsync;
         Changes.MessageRaised += ShowMessage;
@@ -55,6 +59,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public ChangesViewModel Changes { get; }
 
     public SyncViewModel Sync { get; }
+
+    public History.HistoryViewModel History { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
@@ -117,6 +123,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             BranchName = branch ?? "Detached HEAD";
             Changes.BranchName = branch ?? string.Empty;
             await Sync.RefreshAsync(CurrentRepository.Path);
+            await History.RefreshAsync(CurrentRepository.Path);
             await Changes.RefreshAsync();
         }
         catch (GitCommandException exception)
@@ -166,6 +173,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         BranchName = "—";
         _ = Changes.OpenAsync(null);
         _ = Sync.RefreshAsync(null);
+        _ = History.RefreshAsync(null);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;

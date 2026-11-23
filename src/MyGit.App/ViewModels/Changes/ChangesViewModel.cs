@@ -58,6 +58,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         _shell = shell;
 
         Diff = new DiffViewModel(diffs);
+        Diff.ActionRequested += (action, lines) => ApplyLinesAsync(lines, discard: action == DiffAction.Discard);
         IsFlat = settings.Settings.FlatFileList;
     }
 
@@ -340,23 +341,6 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         Diff.Change is { } change && Unstaged.FindFile(change.Path) is { } node ? DiscardAsync([node]) : Task.CompletedTask;
 
     // ---- Hunks and lines (Phase 3b) ----
-
-    /// <summary>"Stage hunk" on an Unstaged diff, "Unstage hunk" on a Staged one.</summary>
-    [RelayCommand]
-    private Task ToggleStageHunkAsync(int hunkIndex) =>
-        Diff.CurrentDiff is { } diff ? ApplyLinesAsync(PatchBuilder.AllChanges(diff, hunkIndex), discard: false) : Task.CompletedTask;
-
-    [RelayCommand]
-    private Task DiscardHunkAsync(int hunkIndex) =>
-        Diff.CurrentDiff is { } diff ? ApplyLinesAsync(PatchBuilder.AllChanges(diff, hunkIndex), discard: true) : Task.CompletedTask;
-
-    /// <summary>Enter, or the bar's Stage lines / Unstage lines button.</summary>
-    [RelayCommand]
-    private Task ToggleStageLinesAsync() => ApplyLinesAsync(Diff.Selection.ToHashSet(), discard: false);
-
-    /// <summary>Del, or the bar's Discard lines button.</summary>
-    [RelayCommand]
-    private Task DiscardLinesAsync() => ApplyLinesAsync(Diff.Selection.ToHashSet(), discard: true);
 
     private async Task ApplyLinesAsync(IReadOnlySet<DiffLineRef> lines, bool discard)
     {
