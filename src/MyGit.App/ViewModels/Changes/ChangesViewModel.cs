@@ -369,6 +369,10 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>The × on the green strip: hide it. The commit itself stays.</summary>
+    [RelayCommand]
+    private void DismissLastCommit() => LastCommit = null;
+
     /// <summary>Takes back the commit in the green strip: its files return to Staged, its message to the box.</summary>
     [RelayCommand]
     private async Task UndoLastCommitAsync()
