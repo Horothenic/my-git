@@ -37,6 +37,43 @@ public sealed class RepositoryService
     }
 
     /// <summary>
+    /// Returns the URL of a remote (default "origin"), or null if there is no such remote.
+    /// </summary>
+    public async Task<string?> GetRemoteUrlAsync(string repositoryPath, string remote = "origin", CancellationToken cancellationToken = default)
+    {
+        var result = await _git.RunAsync(repositoryPath, ["remote", "get-url", remote], cancellationToken: cancellationToken);
+        return result.Succeeded ? result.StandardOutput.Trim() : null;
+    }
+
+    /// <summary>
+    /// Normalizes a remote URL so different spellings of the same repo compare equal:
+    /// "https://github.com/Owner/Repo.git/" → "github.com/owner/repo".
+    /// </summary>
+    public static string NormalizeRemoteUrl(string url)
+    {
+        var value = url.Trim().TrimEnd('/');
+
+        if (value.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value[..^4];
+        }
+
+        // git@github.com:Owner/Repo → github.com/Owner/Repo
+        if (value.StartsWith("git@", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value[4..].Replace(':', '/');
+        }
+
+        var scheme = value.IndexOf("://", StringComparison.Ordinal);
+        if (scheme >= 0)
+        {
+            value = value[(scheme + 3)..];
+        }
+
+        return value.ToLowerInvariant();
+    }
+
+    /// <summary>
     /// Returns the checked-out branch name, or null when HEAD is detached.
     /// </summary>
     public async Task<string?> GetCurrentBranchAsync(string repositoryPath, CancellationToken cancellationToken = default)

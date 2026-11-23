@@ -15,17 +15,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly RepositoryService _repositoryService;
     private readonly AppSettingsStore _settingsStore;
     private readonly ThemeService _themeService;
+    private readonly IDialogService _dialogs;
 
     public MainWindowViewModel(
         RepositoryStore repositoryStore,
         RepositoryService repositoryService,
         AppSettingsStore settingsStore,
         ThemeService themeService,
-        IFolderPicker folderPicker)
+        IFolderPicker folderPicker,
+        IDialogService dialogs,
+        AccountViewModel account)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
         _themeService = themeService;
+        _dialogs = dialogs;
+        Account = account;
 
         RepositoryPicker = new RepositoryPickerViewModel(repositoryStore, repositoryService, folderPicker);
         RepositoryPicker.RepositoryOpened += item => _ = OpenRepositoryAsync(item);
@@ -34,6 +39,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     }
 
     public RepositoryPickerViewModel RepositoryPicker { get; }
+
+    public AccountViewModel Account { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
@@ -69,6 +76,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Reopens the repository that was open last time.</summary>
     public async Task InitializeAsync()
     {
+        // Load the account in the background; the repository shouldn't wait for GitHub.
+        _ = Account.InitializeAsync();
+
         var lastPath = _settingsStore.Settings.LastRepositoryPath;
 
         if (lastPath is null)
@@ -116,6 +126,22 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleTheme() => _themeService.Toggle();
+
+    /// <summary>Raised so the view can close the repository dropdown before a dialog opens.</summary>
+    public event Action? DialogOpening;
+
+    [RelayCommand]
+    private async Task CloneAsync()
+    {
+        DialogOpening?.Invoke();
+
+        var clonedPath = await _dialogs.ShowCloneAsync();
+
+        if (clonedPath is not null)
+        {
+            RepositoryPicker.AddAndOpen(clonedPath);
+        }
+    }
 
     private async Task OpenRepositoryAsync(RepositoryItemViewModel item)
     {

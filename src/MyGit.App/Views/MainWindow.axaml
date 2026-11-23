@@ -26,13 +26,72 @@
                   ToolTip.Tip="Switch dark / light theme">
             <mi:MaterialIcon Kind="ThemeLightDark" Width="18" Height="18" />
           </Button>
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
-                      ToolTip.Tip="GitHub sign-in arrives in Phase 2">
-            <mi:MaterialIcon Kind="AccountCircleOutline" Width="20" Height="20"
-                             Foreground="{DynamicResource TextSecondaryBrush}" />
-            <TextBlock Text="Not signed in" VerticalAlignment="Center"
-                       Foreground="{DynamicResource TextSecondaryBrush}" />
-          </StackPanel>
+          <!-- Account button and menu -->
+          <Button x:Name="AccountButton" Classes="toolbar-icon" BorderThickness="0" Width="NaN" Padding="10,0">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Panel VerticalAlignment="Center">
+                <mi:MaterialIcon Kind="AccountCircleOutline" Width="22" Height="22"
+                                 Foreground="{DynamicResource TextSecondaryBrush}"
+                                 IsVisible="{Binding Account.IsSignedOut}" />
+                <Border Classes="avatar" IsVisible="{Binding Account.IsSignedIn}">
+                  <Panel>
+                    <TextBlock Text="{Binding Account.Initial}" IsVisible="{Binding !Account.HasAvatar}" />
+                    <Image Source="{Binding Account.Avatar}" IsVisible="{Binding Account.HasAvatar}" />
+                  </Panel>
+                </Border>
+              </Panel>
+              <TextBlock Text="{Binding Account.DisplayName}" VerticalAlignment="Center"
+                         Foreground="{DynamicResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedRight">
+                <Panel x:DataType="vm:MainWindowViewModel" Width="280">
+
+                  <!-- Signed out -->
+                  <StackPanel Spacing="8" IsVisible="{Binding Account.IsSignedOut}">
+                    <TextBlock FontWeight="SemiBold" Text="Sign in to GitHub" />
+                    <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap"
+                               Text="One account for all your repositories. Used for clone, fetch, pull and push." />
+                    <Button Command="{Binding Account.SignInCommand}" Margin="0,4,0,0">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <mi:MaterialIcon Kind="Github" Width="16" Height="16" />
+                        <TextBlock Text="Sign in with GitHub" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+
+                  <!-- Signed in -->
+                  <StackPanel Spacing="4" IsVisible="{Binding Account.IsSignedIn}">
+                    <StackPanel Orientation="Horizontal" Spacing="10" Margin="4,0,0,8">
+                      <Border Classes="avatar" Width="36" Height="36" CornerRadius="18">
+                        <Panel>
+                          <TextBlock Text="{Binding Account.Initial}" IsVisible="{Binding !Account.HasAvatar}" />
+                          <Image Source="{Binding Account.Avatar}" IsVisible="{Binding Account.HasAvatar}" />
+                        </Panel>
+                      </Border>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Account.DisplayName}" />
+                        <TextBlock Classes="caption" Text="{Binding Account.Login, StringFormat='@{0} · github.com'}" />
+                      </StackPanel>
+                    </StackPanel>
+                    <Button Classes="list-row" Command="{Binding Account.ViewProfileCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="OpenInNew" Width="16" Height="16" />
+                        <TextBlock Text="View profile on GitHub" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding Account.SignOutCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Logout" Width="16" Height="16" Foreground="{DynamicResource DangerBrush}" />
+                        <TextBlock Text="Sign out" Foreground="{DynamicResource DangerBrush}" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Panel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
         </StackPanel>
 
         <!-- Left side: Repository, Branch, Fetch, Pull, Push -->
@@ -105,9 +164,7 @@
                       </StackPanel>
                     </Button>
                     <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                            IsEnabled="False"
-                            ToolTip.ShowOnDisabled="True"
-                            ToolTip.Tip="Cloning arrives in Phase 2">
+                            Command="{Binding CloneCommand}">
                       <StackPanel Orientation="Horizontal" Spacing="6">
                         <mi:MaterialIcon Kind="CloudDownloadOutline" Width="16" Height="16" />
                         <TextBlock Text="Clone" />
@@ -196,14 +253,21 @@
         <Image Source="/Assets/my-git-128.png" Width="64" Height="64" HorizontalAlignment="Center" />
         <TextBlock Classes="heading" Text="Open a repository" HorizontalAlignment="Center" />
         <TextBlock Classes="caption" FontSize="13" TextWrapping="Wrap" TextAlignment="Center"
-                   Text="Pick a folder that's already a git repository. Cloning from GitHub arrives in Phase 2." />
-        <Button HorizontalAlignment="Center" Margin="0,6,0,0"
-                Command="{Binding RepositoryPicker.AddLocalCommand}">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <mi:MaterialIcon Kind="FolderPlusOutline" Width="16" Height="16" />
-            <TextBlock Text="Add local repository" />
-          </StackPanel>
-        </Button>
+                   Text="Clone one of your GitHub repositories, or add a folder that's already a git repository." />
+        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,6,0,0">
+          <Button Command="{Binding CloneCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <mi:MaterialIcon Kind="CloudDownloadOutline" Width="16" Height="16" />
+              <TextBlock Text="Clone repository" />
+            </StackPanel>
+          </Button>
+          <Button Command="{Binding RepositoryPicker.AddLocalCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <mi:MaterialIcon Kind="FolderPlusOutline" Width="16" Height="16" />
+              <TextBlock Text="Add local repository" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
       </StackPanel>
 
       <!-- Repository open: main tabs -->

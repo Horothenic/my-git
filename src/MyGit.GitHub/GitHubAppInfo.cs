@@ -9,7 +9,7 @@ public static class GitHubAppInfo
     /// <summary>
     /// From github.com/settings/developers → OAuth Apps → My Git ("Enable Device Flow" must be on).
     /// </summary>
-    public const string ClientId = "";
+    public const string ClientId = "Ov23lipaLw782FRVMUMV";
 
     /// <summary>Sent as the User-Agent on GitHub API calls.</summary>
     public const string ProductName = "MyGit";

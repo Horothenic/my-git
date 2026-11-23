@@ -77,6 +77,12 @@ public sealed partial class RepositoryPickerViewModel : ObservableObject
             return;
         }
 
+        AddAndOpen(root);
+    }
+
+    /// <summary>Adds a repository (if it isn't listed yet) and opens it.</summary>
+    public void AddAndOpen(string root)
+    {
         _store.Add(RepositoryInfo.FromPath(root));
         Reload();
 

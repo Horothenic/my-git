@@ -22,6 +22,15 @@ FOREGROUND = "#FFFFFF"
 CORNER_RADIUS = 26
 SUPERSAMPLE = 8  # draw 8x larger, then downscale for smooth edges
 
+# How big the shield and glyph are inside the rounded square (1.0 = original artwork).
+# Strokes keep their tuned widths; only positions shrink toward ART_CENTER.
+ART_SCALE = 0.8
+ART_CENTER = (60, 61)
+
+# Outline-only variants (no background) for the window title bar.
+OUTLINE_COLORS = {"white": "#FFFFFF", "black": "#1F2328"}
+OUTLINE_ICO_SIZES = [16, 20, 24, 32, 40, 48]
+
 # Shapes on the 120 grid. Each path is a start point plus segments:
 # ("L", x, y) for straight lines, ("C", x1, y1, x2, y2, x, y) for cubic curves.
 CREST = [
@@ -44,6 +53,13 @@ TIERS = {
 
 PNG_SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256, 512, 1024]
 ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 256]
+
+
+def art(point, art_scale=None):
+    """Shrinks a point on the 120 grid toward ART_CENTER (by ART_SCALE unless given)."""
+    factor = ART_SCALE if art_scale is None else art_scale
+    cx, cy = ART_CENTER
+    return (cx + (point[0] - cx) * factor, cy + (point[1] - cy) * factor)
 
 
 def tier_for(size: int) -> str:
@@ -86,7 +102,9 @@ def flatten(path, steps=48):
     return points
 
 
-def render(size: int) -> Image.Image:
+def render(size: int, background: bool = True, color: str = FOREGROUND) -> Image.Image:
+    # Without the rounded square there's nothing to leave room for: use the full artwork size.
+    art_scale = ART_SCALE if background else 1.0
     tier = TIERS[tier_for(size)]
     scale = size * SUPERSAMPLE / 120
 
@@ -94,23 +112,28 @@ def render(size: int) -> Image.Image:
     draw = ImageDraw.Draw(canvas)
 
     def p(point):
-        return (point[0] * scale, point[1] * scale)
+        x, y = art(point, art_scale)
+        return (x * scale, y * scale)
 
     def stroke(path, width, closed=False):
         points = [p(pt) for pt in flatten(path)]
         if closed:
             points.append(points[1])  # overlap one segment so the closing join is smooth
         w = width * scale
-        draw.line(points, fill=FOREGROUND, width=round(w), joint="curve")
+        draw.line(points, fill=color, width=round(w), joint="curve")
+        # Pillow leaves tiny gaps where thick segments meet; a round dot on every point fills them.
+        for point in points:
+            dot(point, w / 2)
         if not closed:
             for end in (points[0], points[-1]):
                 dot(end, w / 2)
 
     def dot(center, radius):
         x, y = center
-        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=FOREGROUND)
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
 
-    draw.rounded_rectangle((0, 0, canvas.width - 1, canvas.height - 1), radius=CORNER_RADIUS * scale, fill=BACKGROUND)
+    if background:
+        draw.rounded_rectangle((0, 0, canvas.width - 1, canvas.height - 1), radius=CORNER_RADIUS * scale, fill=BACKGROUND)
     stroke(CREST, tier["crest"], closed=True)
 
     left, right = shift_branches(tier["branch_x"])
@@ -125,29 +148,41 @@ def render(size: int) -> Image.Image:
     return canvas.resize((size, size), Image.LANCZOS)
 
 
+def fmt(value: float) -> str:
+    return f"{value:.2f}".rstrip("0").rstrip(".")
+
+
+def svg_point(x, y) -> str:
+    ax, ay = art((x, y))
+    return f"{fmt(ax)} {fmt(ay)}"
+
+
 def svg_path(path):
     start, *segments = path
-    parts = [f"M{start[0]} {start[1]}"]
+    parts = [f"M{svg_point(*start)}"]
     for s in segments:
-        parts.append(f"L{s[1]} {s[2]}" if s[0] == "L" else "C" + " ".join(str(v) for v in s[1:]))
+        coords = s[1:]
+        pairs = " ".join(svg_point(coords[i], coords[i + 1]) for i in range(0, len(coords), 2))
+        parts.append(("L" if s[0] == "L" else "C") + pairs)
     return " ".join(parts)
 
 
 def write_svg(name: str, tier_name: str):
     tier = TIERS[tier_name]
     left, right = shift_branches(tier["branch_x"])
+    bottom_x, bottom_y = art((60, 79))
     top_dots = ""
     if tier["top_dot"]:
         top_dots = (
-            f'\n  <circle cx="{left[0][0]}" cy="{left[0][1]}" r="{tier["top_dot"]}" fill="{FOREGROUND}"/>'
-            f'\n  <circle cx="{right[0][0]}" cy="{right[0][1]}" r="{tier["top_dot"]}" fill="{FOREGROUND}"/>'
+            f'\n  <circle cx="{fmt(art(left[0])[0])}" cy="{fmt(art(left[0])[1])}" r="{tier["top_dot"]}" fill="{FOREGROUND}"/>'
+            f'\n  <circle cx="{fmt(art(right[0])[0])}" cy="{fmt(art(right[0])[1])}" r="{tier["top_dot"]}" fill="{FOREGROUND}"/>'
         )
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
   <title>My Git</title>
   <rect width="120" height="120" rx="{CORNER_RADIUS}" fill="{BACKGROUND}"/>
   <path d="{svg_path(CREST[:-1])} Z" fill="none" stroke="{FOREGROUND}" stroke-width="{tier["crest"]}" stroke-linejoin="round"/>
   <path d="{svg_path(left)} {svg_path(right)}" fill="none" stroke="{FOREGROUND}" stroke-width="{tier["glyph"]}" stroke-linecap="round" stroke-linejoin="round"/>{top_dots}
-  <circle cx="60" cy="79" r="{tier["bottom_dot"]}" fill="{FOREGROUND}"/>
+  <circle cx="{fmt(bottom_x)}" cy="{fmt(bottom_y)}" r="{tier["bottom_dot"]}" fill="{FOREGROUND}"/>
 </svg>
 """
     (ROOT / "svg" / name).write_text(svg, encoding="utf-8")
@@ -173,6 +208,15 @@ def main():
         append_images=[images[s] for s in ICO_SIZES if s != max(ICO_SIZES)],
     )
 
+    # Outline-only title bar icons: white for dark title bars, black for light ones.
+    for name, color in OUTLINE_COLORS.items():
+        outline = {size: render(size, background=False, color=color) for size in OUTLINE_ICO_SIZES}
+        outline[max(OUTLINE_ICO_SIZES)].save(
+            ROOT / f"my-git-outline-{name}.ico",
+            sizes=[(s, s) for s in OUTLINE_ICO_SIZES],
+            append_images=[outline[s] for s in OUTLINE_ICO_SIZES if s != max(OUTLINE_ICO_SIZES)],
+        )
+
     # A contact sheet to eyeball every size at once.
     sheet = Image.new("RGBA", (sum(PNG_SIZES[:9]) + 10 * 12, 280), (240, 240, 240, 255))
     x = 12
@@ -180,7 +224,7 @@ def main():
         sheet.alpha_composite(images[size], (x, 270 - size))
         x += size + 12
     sheet.save(ROOT / "png" / "contact-sheet.png")
-    print("Wrote svg/, png/ and my-git.ico")
+    print("Wrote svg/, png/, my-git.ico and the outline .ico files")
 
 
 if __name__ == "__main__":

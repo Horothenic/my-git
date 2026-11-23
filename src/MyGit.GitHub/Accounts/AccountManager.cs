@@ -14,11 +14,15 @@ public sealed class AccountManager : IGitEnvironmentProvider
 
     private readonly ITokenStore _tokenStore;
     private string? _token;
+    private string? _savedLogin;
 
     public AccountManager(ITokenStore tokenStore)
     {
         _tokenStore = tokenStore;
-        _token = tokenStore.Read()?.Token;
+
+        var saved = tokenStore.Read();
+        _token = saved?.Token;
+        _savedLogin = saved?.Login;
     }
 
     /// <summary>Raised after signing in or out.</summary>
@@ -44,8 +48,14 @@ public sealed class AccountManager : IGitEnvironmentProvider
         }
         catch (AuthorizationException)
         {
+            // The token was revoked on GitHub (or the OAuth App was removed).
             SignOut();
             return;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or ApiException or TaskCanceledException)
+        {
+            // Offline or GitHub is down: stay signed in with what we saved.
+            Account = OfflineAccount(_savedLogin ?? "github");
         }
 
         AccountChanged?.Invoke();
@@ -58,6 +68,7 @@ public sealed class AccountManager : IGitEnvironmentProvider
 
         _tokenStore.Write(account.Login, token);
         _token = token;
+        _savedLogin = account.Login;
         Account = account;
         AccountChanged?.Invoke();
     }
@@ -66,6 +77,7 @@ public sealed class AccountManager : IGitEnvironmentProvider
     {
         _tokenStore.Delete();
         _token = null;
+        _savedLogin = null;
         Account = null;
         AccountChanged?.Invoke();
     }
@@ -92,6 +104,9 @@ public sealed class AccountManager : IGitEnvironmentProvider
             new("credential.https://github.com.helper", ""),
         ]);
     }
+
+    private static GitHubAccount OfflineAccount(string login) =>
+        new(login, null, $"https://github.com/{login}.png", $"https://github.com/{login}");
 
     private static GitHubClient CreateClient(string token) =>
         new(new ProductHeaderValue(GitHubAppInfo.ProductName)) { Credentials = new Credentials(token) };

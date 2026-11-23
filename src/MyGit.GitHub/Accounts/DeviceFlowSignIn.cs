@@ -21,7 +21,8 @@ public sealed class DeviceFlowSignIn
         if (!GitHubAppInfo.IsConfigured)
         {
             throw new InvalidOperationException(
-                "GitHub sign-in isn't set up yet: the OAuth App client ID in GitHubAppInfo.cs is empty.");
+                "Sign-in isn't available yet: this build of My Git has no GitHub OAuth App Client ID " +
+                "(GitHubAppInfo.ClientId). Register the app on GitHub and add its Client ID.");
         }
 
         var request = new OauthDeviceFlowRequest(GitHubAppInfo.ClientId);
