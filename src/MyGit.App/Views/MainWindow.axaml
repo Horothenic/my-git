@@ -5,6 +5,7 @@
         x:Class="MyGit.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Title="My Git"
+        Icon="/Assets/my-git.ico"
         Width="1280" Height="800"
         MinWidth="820" MinHeight="500"
         WindowStartupLocation="CenterScreen">
@@ -192,8 +193,7 @@
       <StackPanel IsVisible="{Binding !HasRepository}"
                   HorizontalAlignment="Center" VerticalAlignment="Center"
                   Spacing="10" MaxWidth="380">
-        <mi:MaterialIcon Kind="SourceRepository" Width="44" Height="44"
-                         Foreground="{DynamicResource TextMutedBrush}" />
+        <Image Source="/Assets/my-git-128.png" Width="64" Height="64" HorizontalAlignment="Center" />
         <TextBlock Classes="heading" Text="Open a repository" HorizontalAlignment="Center" />
         <TextBlock Classes="caption" FontSize="13" TextWrapping="Wrap" TextAlignment="Center"
                    Text="Pick a folder that's already a git repository. Cloning from GitHub arrives in Phase 2." />
