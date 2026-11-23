@@ -28,6 +28,10 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     private bool _refreshPending;
     private (string Summary, string Description) _messageBeforeAmend;
 
+    // For the green strip: the branch it went to, and the message Undo puts back into the box.
+    private string _lastCommitBranch = string.Empty;
+    private (string Summary, string Description) _lastCommitMessage;
+
     // Which hidden list applies: the repo's GitHub address, or its folder if it has no remote.
     private string _hiddenKey = string.Empty;
 
@@ -118,13 +122,33 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     public partial bool IsAmend { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanCommit))]
+    [NotifyPropertyChangedFor(nameof(CanCommit), nameof(CommitButtonText), nameof(IsNotCommitting))]
     [NotifyCanExecuteChangedFor(nameof(CommitCommand))]
     public partial bool IsCommitting { get; set; }
 
+    public bool IsNotCommitting => !IsCommitting;
+
     public bool CanCommit => !IsCommitting && Summary.Trim().Length > 0 && (StagedCount > 0 || IsAmend);
 
-    public string CommitButtonText => IsAmend ? "Amend last commit" : string.IsNullOrEmpty(BranchName) ? "Commit" : $"Commit to {BranchName}";
+    public string CommitButtonText =>
+        IsCommitting ? "Committing…" :
+        IsAmend ? "Amend last commit" :
+        string.IsNullOrEmpty(BranchName) ? "Commit" : $"Commit to {BranchName}";
+
+    /// <summary>The commit just made from this box, shown in the green strip with Undo.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasLastCommit), nameof(LastCommitTitle), nameof(LastCommitDetails))]
+    public partial CommitInfo? LastCommit { get; set; }
+
+    public bool HasLastCommit => LastCommit is not null;
+
+    public string LastCommitTitle => LastCommit is null
+        ? string.Empty
+        : $"{(LastCommit.WasAmend ? "Amended" : "Committed")} “{LastCommit.Summary}” to {_lastCommitBranch}";
+
+    public string LastCommitDetails => LastCommit is null
+        ? string.Empty
+        : $"{LastCommit.ShortSha}  ·  {(LastCommit.FileCount == 1 ? "1 file" : $"{LastCommit.FileCount} files")}  ·  {LastCommit.CommittedAt:t}";
 
     /// <summary>Starts showing a repository (or nothing, for null).</summary>
     public async Task OpenAsync(string? repositoryPath)
@@ -135,6 +159,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         RepositoryPath = repositoryPath;
         IsShowingHidden = false;
         IsAmend = false;
+        LastCommit = null;
         Summary = string.Empty;
         Description = string.Empty;
         await Diff.ShowAsync(repositoryPath ?? string.Empty, null, staged: false);
@@ -318,12 +343,18 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
         try
         {
-            await _commits.CommitAsync(repository, CommitService.BuildMessage(Summary, Description), IsAmend);
+            var message = (Summary, Description);
+            var commit = await _commits.CommitAsync(repository, CommitService.BuildMessage(Summary, Description), IsAmend);
 
-            Summary = string.Empty;
-            Description = string.Empty;
+            _lastCommitMessage = message;
+            _lastCommitBranch = BranchName;
+            LastCommit = commit;
+
+            // Clear the box. Reset the amend memory first so unticking Amend doesn't bring text back.
             _messageBeforeAmend = (string.Empty, string.Empty);
             IsAmend = false;
+            Summary = string.Empty;
+            Description = string.Empty;
             Committed?.Invoke();
         }
         catch (GitCommandException exception)
@@ -334,6 +365,37 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         finally
         {
             IsCommitting = false;
+            await RefreshAsync();
+        }
+    }
+
+    /// <summary>Takes back the commit in the green strip: its files return to Staged, its message to the box.</summary>
+    [RelayCommand]
+    private async Task UndoLastCommitAsync()
+    {
+        if (RepositoryPath is not { } repository || LastCommit is not { } commit)
+        {
+            return;
+        }
+
+        try
+        {
+            if (await _commits.UndoAsync(repository, commit) is { } reason)
+            {
+                MessageRaised?.Invoke(reason);
+                return;
+            }
+
+            LastCommit = null;
+            (Summary, Description) = _lastCommitMessage;
+            Committed?.Invoke(); // the main window refreshes branch info, same as after a commit
+        }
+        catch (GitCommandException exception)
+        {
+            MessageRaised?.Invoke(exception.Message);
+        }
+        finally
+        {
             await RefreshAsync();
         }
     }

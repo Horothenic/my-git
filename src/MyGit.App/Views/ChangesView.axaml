@@ -182,22 +182,40 @@
 
       <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />
 
-      <!-- Commit box -->
-      <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" Padding="12,10">
-        <StackPanel Spacing="8">
-          <TextBox x:Name="SummaryBox" PlaceholderText="Summary (required)" Text="{Binding Summary}" MaxLength="200" />
+      <!-- Commit box, plus the confirmation strip for the commit just made -->
+      <StackPanel Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}">
+        <StackPanel Spacing="8" Margin="12,10">
+          <TextBox x:Name="SummaryBox" PlaceholderText="Summary (required)" Text="{Binding Summary}" MaxLength="200"
+                   IsEnabled="{Binding IsNotCommitting}" />
           <TextBox PlaceholderText="Description" Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap"
-                   MinHeight="60" MaxHeight="200" />
+                   MinHeight="60" MaxHeight="200" IsEnabled="{Binding IsNotCommitting}" />
           <DockPanel>
-            <Button DockPanel.Dock="Right" Classes="accent" Content="{Binding CommitButtonText}" Command="{Binding CommitCommand}"
-                    ToolTip.Tip="Ctrl+Enter" />
+            <Button DockPanel.Dock="Right" Classes="accent" Command="{Binding CommitCommand}" ToolTip.Tip="Ctrl+Enter">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <mi:MaterialIcon Kind="Loading" Width="14" Height="14" Classes="spin" IsVisible="{Binding IsCommitting}" />
+                <TextBlock Text="{Binding CommitButtonText}" />
+              </StackPanel>
+            </Button>
             <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
-              <CheckBox Content="Amend last commit" IsChecked="{Binding IsAmend}" />
+              <CheckBox Content="Amend last commit" IsChecked="{Binding IsAmend}" IsEnabled="{Binding IsNotCommitting}" />
               <TextBlock Classes="caption" Text="{Binding StagedCountText}" VerticalAlignment="Center" />
             </StackPanel>
           </DockPanel>
         </StackPanel>
-      </Border>
+
+        <Border Classes="commit-done" IsVisible="{Binding HasLastCommit}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Content="Undo" Command="{Binding UndoLastCommitCommand}"
+                    ToolTip.Tip="Take this commit back: its files go back to Staged and its message back into the box" />
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <mi:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16" Foreground="{DynamicResource SuccessBrush}" />
+              <TextBlock Text="{Binding LastCommitTitle}" Foreground="{DynamicResource SuccessBrush}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="caption" Text="{Binding LastCommitDetails}" VerticalAlignment="Center"
+                         FontFamily="Cascadia Mono, Consolas, monospace" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </StackPanel>
     </Grid>
   </Grid>
 </UserControl>

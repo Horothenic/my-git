@@ -46,6 +46,71 @@ public sealed class CommitServiceTests
     }
 
     [Fact]
+    public async Task CommitAsync_ReturnsInfo_AndUndoRestagesEverything()
+    {
+        using var repository = await TempRepository.CreateAsync();
+        await repository.CommitFileAsync("a.txt", "one", "first");
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "a.txt"), "two");
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "b.txt"), "new");
+        await repository.RunAsync("add", "a.txt", "b.txt");
+
+        var info = await _service.CommitAsync(repository.Path, "Second\n\nDetails", amend: false);
+
+        Assert.Equal("Second", info.Summary);
+        Assert.Equal(2, info.FileCount);
+        Assert.StartsWith(info.ShortSha, info.Sha);
+
+        Assert.Null(await _service.UndoAsync(repository.Path, info));
+
+        var log = await repository.RunAsync("log", "--format=%s");
+        Assert.Equal("first", log.StandardOutput.Trim());
+        var staged = await repository.RunAsync("diff", "--cached", "--name-only");
+        Assert.Equal(["a.txt", "b.txt"], staged.OutputLines);
+        Assert.Equal("two", await File.ReadAllTextAsync(Path.Combine(repository.Path, "a.txt")));
+    }
+
+    [Fact]
+    public async Task UndoAsync_OfAmend_BringsBackTheOriginalCommit()
+    {
+        using var repository = await TempRepository.CreateAsync();
+        await repository.CommitFileAsync("a.txt", "one", "Original");
+        var original = await _service.GetHeadAsync(repository.Path);
+
+        var amended = await _service.CommitAsync(repository.Path, "Reworded", amend: true);
+        Assert.Null(await _service.UndoAsync(repository.Path, amended));
+
+        Assert.Equal(original, await _service.GetHeadAsync(repository.Path));
+    }
+
+    [Fact]
+    public async Task UndoAsync_OfFirstCommit_LeavesFilesStaged()
+    {
+        using var repository = await TempRepository.CreateAsync();
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "a.txt"), "one");
+        await repository.RunAsync("add", "a.txt");
+        var info = await _service.CommitAsync(repository.Path, "First", amend: false);
+
+        Assert.Null(await _service.UndoAsync(repository.Path, info));
+
+        Assert.Null(await _service.GetHeadAsync(repository.Path));
+        var staged = await repository.RunAsync("diff", "--cached", "--name-only");
+        Assert.Equal(["a.txt"], staged.OutputLines);
+    }
+
+    [Fact]
+    public async Task UndoAsync_Refuses_WhenTheBranchMovedOn()
+    {
+        using var repository = await TempRepository.CreateAsync();
+        await repository.CommitFileAsync("a.txt", "one", "first");
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "b.txt"), "b");
+        await repository.RunAsync("add", "b.txt");
+        var info = await _service.CommitAsync(repository.Path, "second", amend: false);
+        await repository.CommitFileAsync("c.txt", "c", "third, made elsewhere");
+
+        Assert.NotNull(await _service.UndoAsync(repository.Path, info));
+    }
+
+    [Fact]
     public async Task GetLastMessageAsync_ReturnsNull_WithoutCommits()
     {
         using var repository = await TempRepository.CreateAsync();
