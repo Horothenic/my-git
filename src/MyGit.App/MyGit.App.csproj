@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>MyGit</AssemblyName>
+    <RootNamespace>MyGit.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\my-git.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Material.Icons.Avalonia" />
+  </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MyGit.Core\MyGit.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    After every local build, copy the runnable app to <repo>\app\ (ignored by git),
+    so there's always a fixed place to launch MyGit.exe from.
+    Skipped on CI (GitHub Actions sets CI=true). If My Git is running, its files are locked:
+    the copy then warns instead of failing the build.
+  -->
+  <PropertyGroup>
+    <LocalAppFolder>$(MSBuildThisFileDirectory)..\..\app\</LocalAppFolder>
+  </PropertyGroup>
+  <Target Name="CopyToLocalAppFolder" AfterTargets="Build" Condition="'$(CI)' != 'true'">
+    <ItemGroup>
+      <LocalAppFiles Include="$(OutDir)**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(LocalAppFiles)"
+          DestinationFiles="@(LocalAppFiles->'$(LocalAppFolder)%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Retries="2"
+          RetryDelayMilliseconds="500"
+          ContinueOnError="WarnAndContinue" />
+    <Message Condition="'$(MSBuildLastTaskResult)' == 'true'" Importance="high"
+             Text="My Git copied to $([System.IO.Path]::GetFullPath('$(LocalAppFolder)'))MyGit.exe" />
+    <Warning Condition="'$(MSBuildLastTaskResult)' != 'true'"
+             Text="app\ was not updated because My Git is running. Close it and build again." />
+  </Target>
+</Project>

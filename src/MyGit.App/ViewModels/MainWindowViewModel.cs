@@ -1,0 +1,143 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using MyGit.App.Services;
+using MyGit.Core.Git;
+using MyGit.Core.Repositories;
+using MyGit.Core.Settings;
+
+namespace MyGit.App.ViewModels;
+
+/// <summary>
+/// The main window: toolbar state, the open repository and messages for the user.
+/// </summary>
+public sealed partial class MainWindowViewModel : ObservableObject
+{
+    private readonly RepositoryService _repositoryService;
+    private readonly AppSettingsStore _settingsStore;
+    private readonly ThemeService _themeService;
+
+    public MainWindowViewModel(
+        RepositoryStore repositoryStore,
+        RepositoryService repositoryService,
+        AppSettingsStore settingsStore,
+        ThemeService themeService,
+        IFolderPicker folderPicker)
+    {
+        _repositoryService = repositoryService;
+        _settingsStore = settingsStore;
+        _themeService = themeService;
+
+        RepositoryPicker = new RepositoryPickerViewModel(repositoryStore, repositoryService, folderPicker);
+        RepositoryPicker.RepositoryOpened += item => _ = OpenRepositoryAsync(item);
+        RepositoryPicker.CurrentRepositoryRemoved += CloseRepository;
+        RepositoryPicker.MessageRaised += ShowMessage;
+    }
+
+    public RepositoryPickerViewModel RepositoryPicker { get; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
+    public partial RepositoryItemViewModel? CurrentRepository { get; set; }
+
+    public bool HasRepository => CurrentRepository is not null;
+
+    public string RepositoryName => CurrentRepository?.Name ?? "Choose a repository";
+
+    /// <summary>Branch name, or a short description when HEAD is detached.</summary>
+    [ObservableProperty]
+    public partial string BranchName { get; set; } = "—";
+
+    // Sync counts are filled in Phase 4 (fetch/pull/push). Badges hide at 0.
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCommitsToPull))]
+    public partial int CommitsToPull { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasCommitsToPush))]
+    public partial int CommitsToPush { get; set; }
+
+    public bool HasCommitsToPull => CommitsToPull > 0;
+
+    public bool HasCommitsToPush => CommitsToPush > 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMessage))]
+    public partial string? Message { get; set; }
+
+    public bool HasMessage => Message is not null;
+
+    /// <summary>Reopens the repository that was open last time.</summary>
+    public async Task InitializeAsync()
+    {
+        var lastPath = _settingsStore.Settings.LastRepositoryPath;
+
+        if (lastPath is null)
+        {
+            return;
+        }
+
+        var item = RepositoryPicker.Find(lastPath);
+
+        if (item is not null && !item.IsMissing)
+        {
+            await OpenRepositoryAsync(item);
+        }
+    }
+
+    /// <summary>Re-reads repository state, e.g. when the window regains focus.</summary>
+    [RelayCommand]
+    public async Task RefreshAsync()
+    {
+        if (CurrentRepository is null)
+        {
+            return;
+        }
+
+        if (CurrentRepository.IsMissing)
+        {
+            ShowMessage($"\"{CurrentRepository.Path}\" no longer exists.");
+            CloseRepository();
+            return;
+        }
+
+        try
+        {
+            var branch = await _repositoryService.GetCurrentBranchAsync(CurrentRepository.Path);
+            BranchName = branch ?? "Detached HEAD";
+        }
+        catch (GitCommandException exception)
+        {
+            ShowMessage(exception.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void DismissMessage() => Message = null;
+
+    [RelayCommand]
+    private void ToggleTheme() => _themeService.Toggle();
+
+    private async Task OpenRepositoryAsync(RepositoryItemViewModel item)
+    {
+        CurrentRepository = item;
+        RepositoryPicker.MarkCurrent(item);
+        Message = null;
+
+        _settingsStore.Settings.LastRepositoryPath = item.Path;
+        _settingsStore.Save();
+
+        await RefreshAsync();
+    }
+
+    private void CloseRepository()
+    {
+        CurrentRepository = null;
+        BranchName = "—";
+        RepositoryPicker.MarkCurrent(null);
+
+        _settingsStore.Settings.LastRepositoryPath = null;
+        _settingsStore.Save();
+    }
+
+    private void ShowMessage(string message) => Message = message;
+}

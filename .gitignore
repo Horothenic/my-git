@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Local copy of the built app (see CopyToLocalAppFolder in MyGit.App.csproj)
+/app/
