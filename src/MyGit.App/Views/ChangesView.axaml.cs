@@ -48,6 +48,20 @@ public sealed partial class ChangesView : UserControl
         StagedExplorerItem.Click += (_, _) => WithFirst(StagedTree, (vm, node) => vm.ShowInExplorer(node));
         StagedCopyItem.Click += (_, _) => WithFirst(StagedTree, (vm, node) => _ = vm.CopyPathAsync(node));
 
+        StashButton.Click += (_, _) => Run(vm => vm.StashAsync(Selection(UnstagedTree)));
+
+        // Picking a file in a tree takes the diff back from a stash file, and the other way round.
+        StashFilesList.SelectionChanged += (_, _) =>
+        {
+            if (StashFilesList.SelectedItem is not null)
+            {
+                _syncingSelection = true;
+                UnstagedTree.SelectedItems.Clear();
+                StagedTree.SelectedItems.Clear();
+                _syncingSelection = false;
+            }
+        };
+
         // Shortcuts that work anywhere in the tab, even while typing the commit message.
         AddHandler(KeyDownEvent, OnViewKeyDown, RoutingStrategies.Tunnel);
 
@@ -72,6 +86,11 @@ public sealed partial class ChangesView : UserControl
             _syncingSelection = true;
             other.SelectedItems.Clear();
             _syncingSelection = false;
+        }
+
+        if (selection.Count > 0)
+        {
+            StashFilesList.SelectedItem = null;
         }
 
         // Show the most recently selected file.

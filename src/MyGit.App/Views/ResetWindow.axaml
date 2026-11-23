@@ -1,0 +1,46 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MyGit.App.Views.ResetWindow"
+        Icon="/Assets/my-git.ico"
+        Width="460" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="22,20" Spacing="10">
+    <TextBlock x:Name="TitleText" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" />
+
+    <Border Classes="reset-option">
+      <RadioButton x:Name="SoftOption" GroupName="mode">
+        <StackPanel Spacing="2">
+          <TextBlock><Run Text="Keep changes staged" FontWeight="SemiBold" /><Run Text="  (soft)" Foreground="{DynamicResource TextSecondaryBrush}" /></TextBlock>
+          <TextBlock x:Name="SoftText" Classes="caption" FontSize="12" TextWrapping="Wrap" />
+        </StackPanel>
+      </RadioButton>
+    </Border>
+
+    <Border Classes="reset-option">
+      <RadioButton x:Name="MixedOption" GroupName="mode" IsChecked="True">
+        <StackPanel Spacing="2">
+          <TextBlock><Run Text="Keep changes unstaged" FontWeight="SemiBold" /><Run Text="  (mixed, git's default)" Foreground="{DynamicResource TextSecondaryBrush}" /></TextBlock>
+          <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap" Text="Same, but the changes go to Unstaged." />
+        </StackPanel>
+      </RadioButton>
+    </Border>
+
+    <Border Classes="reset-option">
+      <RadioButton x:Name="HardOption" GroupName="mode">
+        <StackPanel Spacing="2">
+          <TextBlock><Run Text="Discard everything" FontWeight="SemiBold" Foreground="{DynamicResource DangerBrush}" /><Run Text="  (hard)" Foreground="{DynamicResource TextSecondaryBrush}" /></TextBlock>
+          <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap"
+                     Text="Throws away those commits and all your uncommitted changes. Undo can bring the commits back, not uncommitted work." />
+        </StackPanel>
+      </RadioButton>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+      <Button x:Name="CancelButton" Content="Cancel" IsCancel="True" />
+      <Button x:Name="ResetButton" Classes="accent" Content="Reset" />
+    </StackPanel>
+  </StackPanel>
+</Window>

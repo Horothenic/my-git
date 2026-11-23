@@ -19,6 +19,7 @@ public sealed partial class HistoryViewModel : ObservableObject
     private const int PageSize = 300;
 
     private readonly HistoryService _history;
+    private readonly CommitActionsService _actions;
     private readonly IGitRunner _git;
     private readonly IDialogService _dialogs;
     private readonly IShellService _shell;
@@ -30,9 +31,10 @@ public sealed partial class HistoryViewModel : ObservableObject
     private bool _loadingMore;
     private CancellationTokenSource? _detailsLoading;
 
-    public HistoryViewModel(HistoryService history, IGitRunner git, DiffService diffs, IDialogService dialogs, IShellService shell)
+    public HistoryViewModel(HistoryService history, CommitActionsService actions, IGitRunner git, DiffService diffs, IDialogService dialogs, IShellService shell)
     {
         _history = history;
+        _actions = actions;
         _git = git;
         _dialogs = dialogs;
         _shell = shell;
@@ -46,6 +48,9 @@ public sealed partial class HistoryViewModel : ObservableObject
     public event Func<Task>? RepositoryChanged;
 
     public ObservableCollection<CommitRowViewModel> Commits { get; } = [];
+
+    /// <summary>The checked-out branch (null when detached), for menu texts like "Cherry-pick onto main".</summary>
+    public string? CurrentBranch { get; set; }
 
     /// <summary>One width for every row's graph (the widest so far), so messages line up.</summary>
     [ObservableProperty]
@@ -236,6 +241,65 @@ public sealed partial class HistoryViewModel : ObservableObject
         {
             await RunAsync(() => _history.CheckoutDetachedAsync(repository, commit.Sha));
         }
+    }
+
+    public Task CherryPickAsync(CommitRowViewModel commit) => RunCommitActionAsync(
+        "Cherry-pick",
+        repository => _actions.CherryPickAsync(repository, commit.Commit),
+        "That change is already on this branch, so there was nothing to cherry-pick.",
+        "cherry-pick");
+
+    public Task RevertAsync(CommitRowViewModel commit) => RunCommitActionAsync(
+        "Revert",
+        repository => _actions.RevertAsync(repository, commit.Commit),
+        "Nothing to revert: that change isn't on this branch anymore.",
+        "revert");
+
+    public async Task ResetAsync(CommitRowViewModel commit)
+    {
+        if (_repositoryPath is not { } repository || CurrentBranch is not { } branch)
+        {
+            MessageRaised?.Invoke("Switch to a branch first: reset moves the branch you're on.");
+            return;
+        }
+
+        var undone = await _actions.CountCommitsAfterAsync(repository, commit.Sha);
+        if (await _dialogs.AskResetAsync(branch, commit.ShortSha, undone) is not { } mode)
+        {
+            return;
+        }
+
+        if (mode == ResetMode.Hard && !await _dialogs.ConfirmAsync(
+                "Discard all uncommitted changes?",
+                $"{branch} moves to {commit.ShortSha}, and every uncommitted change (including staged ones) is thrown away. This can't be undone.",
+                "Discard and reset"))
+        {
+            return;
+        }
+
+        await RunAsync(() => _actions.ResetAsync(repository, commit.Sha, mode));
+    }
+
+    private async Task RunCommitActionAsync(string name, Func<string, Task<CommitActionOutcome>> action, string nothingToDo, string gitCommand)
+    {
+        if (_repositoryPath is not { } repository)
+        {
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            switch (await action(repository))
+            {
+                case CommitActionOutcome.NothingToDo:
+                    MessageRaised?.Invoke(nothingToDo);
+                    break;
+                case CommitActionOutcome.Conflict:
+                    MessageRaised?.Invoke($"{name} stopped on a conflict. Resolve the files in your editor, then run \"git {gitCommand} --continue\" " +
+                                          $"(or \"git {gitCommand} --abort\" to cancel). A conflict screen comes in a later version.");
+                    break;
+            }
+        });
     }
 
     public Task CopyShaAsync(CommitRowViewModel commit) => _shell.CopyTextAsync(commit.Sha);

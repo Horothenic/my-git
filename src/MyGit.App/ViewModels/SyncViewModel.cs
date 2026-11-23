@@ -281,7 +281,8 @@ public sealed partial class SyncViewModel : ObservableObject
         }
     }
 
-    private void ShowNotice(string text)
+    /// <summary>Shows a short green note under the toolbar (also used by Undo).</summary>
+    public void ShowNotice(string text)
     {
         _noticeTimer?.Cancel();
         _noticeTimer = new CancellationTokenSource();

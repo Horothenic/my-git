@@ -89,8 +89,14 @@ public sealed partial class DiffViewModel : ObservableObject
 
     /// <summary>True for diffs that can't be changed (a commit in the History tab).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanEditLines))]
+    [NotifyPropertyChangedFor(nameof(CanEditLines), nameof(ShowUnstagedActions), nameof(ShowStagedActions))]
     public partial bool IsReadOnly { get; set; }
+
+    /// <summary>Show "Discard file" / "Stage file" (an Unstaged file in the Changes tab).</summary>
+    public bool ShowUnstagedActions => !IsReadOnly && IsUnstaged;
+
+    /// <summary>Show "Unstage file" (a Staged file in the Changes tab).</summary>
+    public bool ShowStagedActions => !IsReadOnly && IsStaged;
 
     /// <summary>The file shown, or null.</summary>
     [ObservableProperty]
@@ -98,7 +104,7 @@ public sealed partial class DiffViewModel : ObservableObject
 
     /// <summary>True when the file comes from the Staged list.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsUnstaged))]
+    [NotifyPropertyChangedFor(nameof(IsUnstaged), nameof(ShowUnstagedActions), nameof(ShowStagedActions))]
     public partial bool IsStaged { get; set; }
 
     public bool IsUnstaged => !IsStaged;

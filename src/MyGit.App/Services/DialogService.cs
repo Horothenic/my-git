@@ -75,6 +75,13 @@ public sealed class DialogService : IDialogService
         return window.Result;
     }
 
+    public async Task<MyGit.Core.History.ResetMode?> AskResetAsync(string branch, string shortSha, int commitsUndone)
+    {
+        var window = new ResetWindow(branch, shortSha, commitsUndone);
+        await window.ShowDialog(_owner);
+        return window.Result;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();

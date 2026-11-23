@@ -29,7 +29,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ChangesViewModel changes,
         SyncViewModel sync,
         History.HistoryViewModel history,
-        BranchesViewModel branches)
+        BranchesViewModel branches,
+        UndoViewModel undo)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -40,6 +41,10 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Sync = sync;
         History = history;
         Branches = branches;
+        Undo = undo;
+        Undo.MessageRaised += ShowMessage;
+        Undo.NoticeRaised += Sync.ShowNotice;
+        Undo.RepositoryChanged += RefreshAsync;
         Branches.MessageRaised += ShowMessage;
         Branches.RepositoryChanged += RefreshAsync;
         History.MessageRaised += ShowMessage;
@@ -67,6 +72,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public History.HistoryViewModel History { get; }
 
     public BranchesViewModel Branches { get; }
+
+    public UndoViewModel Undo { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
@@ -130,6 +137,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
             Changes.BranchName = branch ?? string.Empty;
             await Sync.RefreshAsync(CurrentRepository.Path);
             await History.RefreshAsync(CurrentRepository.Path);
+            await Undo.RefreshAsync(CurrentRepository.Path);
+            History.CurrentBranch = branch;
             await Changes.RefreshAsync();
         }
         catch (GitCommandException exception)
@@ -180,6 +189,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _ = Changes.OpenAsync(null);
         _ = Sync.RefreshAsync(null);
         _ = History.RefreshAsync(null);
+        _ = Undo.RefreshAsync(null);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;
