@@ -216,20 +216,40 @@
     <Setter Property="Padding" Value="10,3" />
     <Setter Property="Margin" Value="0,6,0,0" />
   </Style>
-  <Style Selector="Border.hunk-header > TextBlock">
+  <Style Selector="TextBlock.hunk-title">
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource HunkHeaderTextBrush}" />
   </Style>
 
-  <Style Selector="Grid.diff-side.removed">
+  <Style Selector="Border.diff-side.removed">
     <Setter Property="Background" Value="{DynamicResource DiffRemovedBrush}" />
   </Style>
-  <Style Selector="Grid.diff-side.added">
+  <Style Selector="Border.diff-side.added">
     <Setter Property="Background" Value="{DynamicResource DiffAddedBrush}" />
   </Style>
-  <Style Selector="Grid.diff-side.empty">
+  <Style Selector="Border.diff-side.empty">
     <Setter Property="Background" Value="{DynamicResource DiffEmptyBrush}" />
+  </Style>
+
+  <!-- A picked line: blue outline, thicker on the left -->
+  <Style Selector="Border.diff-side">
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="3,1,1,1" />
+  </Style>
+  <Style Selector="Border.diff-side.removed, Border.diff-side.added">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Border.diff-side.selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- Bar under the diff while lines are picked -->
+  <Style Selector="Border.selection-bar">
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Padding" Value="10,6" />
   </Style>
 
   <Style Selector="TextBlock.line-number">

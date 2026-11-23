@@ -28,8 +28,12 @@ public enum DiffState
 public sealed partial class DiffViewModel : ObservableObject
 {
     private readonly DiffService _diffService;
+    private readonly HashSet<DiffLineRef> _selection = [];
     private CancellationTokenSource? _loading;
     private string? _repositoryPath;
+
+    // Where a Shift+click or drag range starts.
+    private (DiffRowViewModel Row, DiffSide Side)? _anchor;
 
     public DiffViewModel(DiffService diffService)
     {
@@ -83,12 +87,151 @@ public sealed partial class DiffViewModel : ObservableObject
     [ObservableProperty]
     public partial string? ErrorText { get; set; }
 
+    /// <summary>The diff behind <see cref="Rows"/>; line actions build their patch from it.</summary>
+    public FileDiff? CurrentDiff { get; private set; }
+
+    /// <summary>The picked lines.</summary>
+    public IReadOnlySet<DiffLineRef> Selection => _selection;
+
+    public int SelectedCount => _selection.Count;
+
+    public bool HasSelection => _selection.Count > 0;
+
+    public string SelectionText => SelectedCount == 1 ? "1 line selected" : $"{SelectedCount} lines selected";
+
+    /// <summary>Hunk and line buttons only make sense for plain text changes (not renames, conflicts...).</summary>
+    public bool CanEditLines => State == DiffState.Lines && Change is { } change && PartialChangesService.Supports(change);
+
+    /// <summary>Click on a changed line. Ctrl adds or removes it, Shift selects the range from the last click.</summary>
+    public void Pick(DiffRowViewModel row, DiffSide side, bool ctrl, bool shift)
+    {
+        if (row.RefFor(side) is not { } picked || !CanEditLines)
+        {
+            return;
+        }
+
+        if (shift && _anchor is { } anchor && anchor.Side == side)
+        {
+            if (!ctrl)
+            {
+                ClearSelection(keepAnchor: true);
+            }
+
+            SelectRange(anchor.Row, row, side);
+        }
+        else if (ctrl)
+        {
+            SetPicked(row, side, picked, !_selection.Contains(picked));
+            _anchor = (row, side);
+        }
+        else
+        {
+            ClearSelection(keepAnchor: false);
+            SetPicked(row, side, picked, true);
+            _anchor = (row, side);
+        }
+
+        NotifySelectionChanged();
+    }
+
+    /// <summary>Dragging over lines: select from where the drag started to <paramref name="row"/>.</summary>
+    public void DragTo(DiffRowViewModel row, DiffSide side)
+    {
+        if (_anchor is not { } anchor || anchor.Side != side || row.RefFor(side) is null)
+        {
+            return;
+        }
+
+        ClearSelection(keepAnchor: true);
+        SelectRange(anchor.Row, row, side);
+        NotifySelectionChanged();
+    }
+
+    public void ClearSelection() => ClearSelection(keepAnchor: false);
+
+    /// <summary>The bar's Clear button and Esc.</summary>
+    [RelayCommand]
+    private void ClearPicked() => ClearSelection(keepAnchor: false);
+
+    private void ClearSelection(bool keepAnchor)
+    {
+        foreach (var row in Rows)
+        {
+            row.IsLeftSelected = false;
+            row.IsRightSelected = false;
+        }
+
+        _selection.Clear();
+        if (!keepAnchor)
+        {
+            _anchor = null;
+        }
+
+        NotifySelectionChanged();
+    }
+
+    private void SelectRange(DiffRowViewModel from, DiffRowViewModel to, DiffSide side)
+    {
+        var start = IndexOf(from);
+        var end = IndexOf(to);
+        if (start < 0 || end < 0)
+        {
+            return;
+        }
+
+        for (var i = Math.Min(start, end); i <= Math.Max(start, end); i++)
+        {
+            if (Rows[i].RefFor(side) is { } picked)
+            {
+                SetPicked(Rows[i], side, picked, true);
+            }
+        }
+    }
+
+    private int IndexOf(DiffRowViewModel row)
+    {
+        for (var i = 0; i < Rows.Count; i++)
+        {
+            if (ReferenceEquals(Rows[i], row))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void SetPicked(DiffRowViewModel row, DiffSide side, DiffLineRef picked, bool selected)
+    {
+        row.SetSelected(side, selected);
+
+        if (selected)
+        {
+            _selection.Add(picked);
+        }
+        else
+        {
+            _selection.Remove(picked);
+        }
+    }
+
+    private void NotifySelectionChanged()
+    {
+        OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(HasSelection));
+        OnPropertyChanged(nameof(SelectionText));
+    }
+
     /// <summary>Shows the diff of a file, or clears the panel when <paramref name="change"/> is null.</summary>
     public async Task ShowAsync(string repositoryPath, FileChange? change, bool staged, bool forceLarge = false)
     {
         _loading?.Cancel();
         _loading = new CancellationTokenSource();
         var token = _loading.Token;
+
+        // A refresh of the same file: keep the rows (and the picked lines) unless the diff changed.
+        var isReload = change is not null && Change is not null && State == DiffState.Lines &&
+                       change.Path == Change.Path && staged == IsStaged;
 
         _repositoryPath = repositoryPath;
         Change = change;
@@ -98,35 +241,38 @@ public sealed partial class DiffViewModel : ObservableObject
 
         if (change is null)
         {
-            Rows = [];
+            SetRows(null, []);
             State = DiffState.None;
             return;
         }
 
         if (!forceLarge && change.Kind != ChangeKind.Deleted && DiffService.IsLarge(repositoryPath, change.Path))
         {
-            Rows = [];
+            SetRows(null, []);
             State = DiffState.TooLarge;
             return;
         }
 
         // Only show "Loading" if it takes a moment, so quick switches don't flicker.
         var indicator = CancellationTokenSource.CreateLinkedTokenSource(token);
-        _ = ShowLoadingAfterDelayAsync(indicator.Token);
+        if (!isReload)
+        {
+            _ = ShowLoadingAfterDelayAsync(indicator.Token);
+        }
 
         try
         {
             var diff = await _diffService.GetDiffAsync(repositoryPath, change, staged, token);
             indicator.Cancel();
-            var rows = diff.IsBinary ? [] : SideBySide.Build(diff).Select(row => new DiffRowViewModel(row)).ToList();
-
-            if (token.IsCancellationRequested)
+            if (token.IsCancellationRequested || (isReload && diff.RawText == CurrentDiff?.RawText))
             {
                 return;
             }
 
-            Rows = rows;
+            var rows = diff.IsBinary ? [] : SideBySide.Build(diff).Select(row => new DiffRowViewModel(row)).ToList();
+            SetRows(diff, rows);
             State = diff.IsBinary ? DiffState.Binary : rows.Count == 0 ? DiffState.NoTextChanges : DiffState.Lines;
+            OnPropertyChanged(nameof(CanEditLines));
         }
         catch (OperationCanceledException)
         {
@@ -145,6 +291,16 @@ public sealed partial class DiffViewModel : ObservableObject
             indicator.Cancel();
             indicator.Dispose();
         }
+    }
+
+    private void SetRows(FileDiff? diff, IReadOnlyList<DiffRowViewModel> rows)
+    {
+        CurrentDiff = diff;
+        Rows = rows;
+        _selection.Clear();
+        _anchor = null;
+        NotifySelectionChanged();
+        OnPropertyChanged(nameof(CanEditLines));
     }
 
     private async Task ShowLoadingAfterDelayAsync(CancellationToken cancellationToken)

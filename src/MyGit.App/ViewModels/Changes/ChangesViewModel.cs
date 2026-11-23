@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using MyGit.App.Services;
 using MyGit.Core.Changes;
 using MyGit.Core.Commits;
+using MyGit.Core.Diffs;
 using MyGit.Core.Git;
 using MyGit.Core.Settings;
 
@@ -15,6 +16,7 @@ namespace MyGit.App.ViewModels.Changes;
 public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 {
     private readonly ChangesService _changes;
+    private readonly PartialChangesService _partial;
     private readonly CommitService _commits;
     private readonly HiddenFilesStore _hidden;
     private readonly Core.Repositories.RepositoryService _repositories;
@@ -37,6 +39,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
     public ChangesViewModel(
         ChangesService changes,
+        PartialChangesService partial,
         CommitService commits,
         Core.Diffs.DiffService diffs,
         HiddenFilesStore hidden,
@@ -46,6 +49,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         IShellService shell)
     {
         _changes = changes;
+        _partial = partial;
         _commits = commits;
         _hidden = hidden;
         _repositories = repositories;
@@ -320,6 +324,75 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private Task DiscardShownFileAsync() =>
         Diff.Change is { } change && Unstaged.FindFile(change.Path) is { } node ? DiscardAsync([node]) : Task.CompletedTask;
+
+    // ---- Hunks and lines (Phase 3b) ----
+
+    /// <summary>"Stage hunk" on an Unstaged diff, "Unstage hunk" on a Staged one.</summary>
+    [RelayCommand]
+    private Task ToggleStageHunkAsync(int hunkIndex) =>
+        Diff.CurrentDiff is { } diff ? ApplyLinesAsync(PatchBuilder.AllChanges(diff, hunkIndex), discard: false) : Task.CompletedTask;
+
+    [RelayCommand]
+    private Task DiscardHunkAsync(int hunkIndex) =>
+        Diff.CurrentDiff is { } diff ? ApplyLinesAsync(PatchBuilder.AllChanges(diff, hunkIndex), discard: true) : Task.CompletedTask;
+
+    /// <summary>Enter, or the bar's Stage lines / Unstage lines button.</summary>
+    [RelayCommand]
+    private Task ToggleStageLinesAsync() => ApplyLinesAsync(Diff.Selection.ToHashSet(), discard: false);
+
+    /// <summary>Del, or the bar's Discard lines button.</summary>
+    [RelayCommand]
+    private Task DiscardLinesAsync() => ApplyLinesAsync(Diff.Selection.ToHashSet(), discard: true);
+
+    private async Task ApplyLinesAsync(IReadOnlySet<DiffLineRef> lines, bool discard)
+    {
+        if (RepositoryPath is not { } repository || Diff.Change is not { } change || Diff.CurrentDiff is not { } shown || lines.Count == 0)
+        {
+            return;
+        }
+
+        if (discard)
+        {
+            if (Diff.IsStaged)
+            {
+                return; // staged changes are unstaged first, never discarded directly
+            }
+
+            var what = lines.Count == 1 ? "this line" : $"these {lines.Count} lines";
+            if (!await _dialogs.ConfirmAsync($"Discard {what}?", "Those changes will be lost. This can't be undone.", "Discard"))
+            {
+                return;
+            }
+        }
+
+        try
+        {
+            if (discard)
+            {
+                await _partial.DiscardAsync(repository, change, shown, lines);
+            }
+            else if (Diff.IsStaged)
+            {
+                await _partial.UnstageAsync(repository, change, shown, lines);
+            }
+            else
+            {
+                await _partial.StageAsync(repository, change, shown, lines);
+            }
+        }
+        catch (StaleDiffException exception)
+        {
+            MessageRaised?.Invoke(exception.Message);
+        }
+        catch (Exception exception) when (exception is GitCommandException or IOException or UnauthorizedAccessException)
+        {
+            MessageRaised?.Invoke(exception is GitCommandException git && !string.IsNullOrWhiteSpace(git.Result.StandardError)
+                ? $"Couldn't apply that change: {git.Result.StandardError.Trim()}"
+                : exception.Message);
+        }
+
+        await RefreshAsync();
+    }
 
     public void OpenInEditor(FileTreeNodeViewModel node) => _shell.OpenFile(FullPath(node));
 
