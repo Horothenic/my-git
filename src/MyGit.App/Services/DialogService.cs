@@ -54,6 +54,13 @@ public sealed class DialogService : IDialogService
         return clonedPath;
     }
 
+    public async Task<bool> ConfirmAsync(string title, string message, string confirmText)
+    {
+        var window = new ConfirmWindow(title, message, confirmText);
+        await window.ShowDialog(_owner);
+        return window.Confirmed;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();

@@ -141,4 +141,122 @@
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Margin" Value="16" />
   </Style>
+  <!-- ===== Changes tab ===== -->
+
+  <!-- Header bar above each file list and the diff -->
+  <Style Selector="Border.list-header">
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="MinHeight" Value="34" />
+  </Style>
+
+  <!-- Small buttons in those headers: Stage all, eye, tree/flat -->
+  <Style Selector="Button.header-button">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Padding" Value="7,2" />
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="Button.header-button.on">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- Compact file trees -->
+  <Style Selector="TreeView.files TreeViewItem">
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="2,0" />
+  </Style>
+
+  <!-- M / A / D / ? / ! letters -->
+  <Style Selector="TextBlock.status-letter">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Width" Value="14" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,6,0" />
+    <Setter Property="Foreground" Value="{DynamicResource WarningTextBrush}" />
+  </Style>
+  <Style Selector="TextBlock.status-letter.added">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+  <Style Selector="TextBlock.status-letter.deleted">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="TextBlock.status-letter.conflicted">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <!-- Diff list: rows edge to edge, no selection highlight -->
+  <Style Selector="ListBox.diff">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+  </Style>
+  <Style Selector="ListBox.diff ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="ListBox.diff ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.diff ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Border.hunk-header">
+    <Setter Property="Background" Value="{DynamicResource HunkHeaderBrush}" />
+    <Setter Property="Padding" Value="10,3" />
+    <Setter Property="Margin" Value="0,6,0,0" />
+  </Style>
+  <Style Selector="Border.hunk-header > TextBlock">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource HunkHeaderTextBrush}" />
+  </Style>
+
+  <Style Selector="Grid.diff-side.removed">
+    <Setter Property="Background" Value="{DynamicResource DiffRemovedBrush}" />
+  </Style>
+  <Style Selector="Grid.diff-side.added">
+    <Setter Property="Background" Value="{DynamicResource DiffAddedBrush}" />
+  </Style>
+  <Style Selector="Grid.diff-side.empty">
+    <Setter Property="Background" Value="{DynamicResource DiffEmptyBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.line-number">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,1,10,1" />
+  </Style>
+  <Style Selector="TextBlock.code">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Padding" Value="0,1,8,1" />
+  </Style>
+
+  <!-- Splitters: a quiet line you can still grab -->
+  <Style Selector="GridSplitter.thin">
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+  </Style>
+  <Style Selector="GridSplitter.thin:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+  </Style>
+
+  <!-- Red button for destructive confirmations -->
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{DynamicResource DangerBrush}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
 </Styles>
