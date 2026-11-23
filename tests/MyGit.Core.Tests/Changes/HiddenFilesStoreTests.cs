@@ -47,6 +47,29 @@ public sealed class HiddenFilesStoreTests : IDisposable
         Assert.Equal(["README.md"], store.GetEntries(Repo));
     }
 
+    [Theory]
+    [InlineData(@"C:\code\game", "https://github.com/Horothenic/Game.git", "github.com/horothenic/game")]
+    [InlineData(@"D:\moved\game-copy", "git@github.com:Horothenic/Game.git", "github.com/horothenic/game")]
+    [InlineData(@"C:\code\local-only", null, @"C:\code\local-only")]
+    public void KeyFor_UsesGitHubAddress_OrFolderWithoutRemote(string folder, string? remote, string expected)
+    {
+        Assert.Equal(expected, HiddenFilesStore.KeyFor(folder, remote));
+    }
+
+    [Fact]
+    public void MoveKey_CarriesFolderEntriesToTheAddress()
+    {
+        var store = new HiddenFilesStore(FilePath);
+        store.Hide(Repo, ["ProjectSettings/"]);
+        store.Hide("github.com/horothenic/game", ["README.md"]);
+
+        store.MoveKey(Repo, "github.com/horothenic/game");
+
+        var reloaded = new HiddenFilesStore(FilePath);
+        Assert.Empty(reloaded.GetEntries(Repo));
+        Assert.Equal(["ProjectSettings/", "README.md"], reloaded.GetEntries("github.com/horothenic/game"));
+    }
+
     [Fact]
     public void IsHidden_IgnoresCase()
     {

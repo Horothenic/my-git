@@ -62,7 +62,7 @@ public sealed class App : Application
                 new FolderPicker(window),
                 dialogs,
                 new AccountViewModel(accounts, dialogs, shell),
-                new ChangesViewModel(changesService, commitService, diffService, hiddenFiles, settingsStore, dialogs, shell));
+                new ChangesViewModel(changesService, commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell));
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;

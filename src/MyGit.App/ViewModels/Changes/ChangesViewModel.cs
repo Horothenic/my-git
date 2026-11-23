@@ -17,6 +17,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     private readonly ChangesService _changes;
     private readonly CommitService _commits;
     private readonly HiddenFilesStore _hidden;
+    private readonly Core.Repositories.RepositoryService _repositories;
     private readonly AppSettingsStore _settings;
     private readonly IDialogService _dialogs;
     private readonly IShellService _shell;
@@ -27,11 +28,15 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     private bool _refreshPending;
     private (string Summary, string Description) _messageBeforeAmend;
 
+    // Which hidden list applies: the repo's GitHub address, or its folder if it has no remote.
+    private string _hiddenKey = string.Empty;
+
     public ChangesViewModel(
         ChangesService changes,
         CommitService commits,
         Core.Diffs.DiffService diffs,
         HiddenFilesStore hidden,
+        Core.Repositories.RepositoryService repositories,
         AppSettingsStore settings,
         IDialogService dialogs,
         IShellService shell)
@@ -39,6 +44,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         _changes = changes;
         _commits = commits;
         _hidden = hidden;
+        _repositories = repositories;
         _settings = settings;
         _dialogs = dialogs;
         _shell = shell;
@@ -140,6 +146,12 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
             return;
         }
 
+        // Hidden files follow the repo's GitHub address, so moving or re-cloning keeps them.
+        // Lists saved under the folder path (before this, or before a remote existed) move over.
+        var remote = await _repositories.GetRemoteUrlAsync(repositoryPath);
+        _hiddenKey = HiddenFilesStore.KeyFor(repositoryPath, remote);
+        _hidden.MoveKey(repositoryPath, _hiddenKey);
+
         _watcher = new RepositoryWatcher(repositoryPath);
         _watcher.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = RefreshAsync());
 
@@ -230,7 +242,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     /// <summary>H: hide the selection, or unhide it when the hidden list is showing.</summary>
     public async Task ToggleHiddenAsync(IReadOnlyCollection<FileTreeNodeViewModel> selection)
     {
-        if (RepositoryPath is not { } repository || selection.Count == 0)
+        if (RepositoryPath is null || selection.Count == 0)
         {
             return;
         }
@@ -239,11 +251,11 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
         if (IsShowingHidden)
         {
-            _hidden.Unhide(repository, entries);
+            _hidden.Unhide(_hiddenKey, entries);
         }
         else
         {
-            _hidden.Hide(repository, entries);
+            _hidden.Hide(_hiddenKey, entries);
         }
 
         UpdateTrees();
@@ -357,9 +369,8 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
     private void UpdateTrees()
     {
-        var repository = RepositoryPath ?? string.Empty;
-        var hidden = _status.Unstaged.Where(change => _hidden.IsHidden(repository, change.Path)).ToList();
-        var visible = _status.Unstaged.Where(change => !_hidden.IsHidden(repository, change.Path)).ToList();
+        var hidden = _status.Unstaged.Where(change => _hidden.IsHidden(_hiddenKey, change.Path)).ToList();
+        var visible = _status.Unstaged.Where(change => !_hidden.IsHidden(_hiddenKey, change.Path)).ToList();
 
         Unstaged.Update(IsShowingHidden ? hidden : visible, IsFlat);
         Staged.Update(_status.Staged, IsFlat);
