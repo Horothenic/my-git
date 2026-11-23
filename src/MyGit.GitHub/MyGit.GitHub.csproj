@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Octokit" />
+    <PackageReference Include="Meziantou.Framework.Win32.CredentialManager" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MyGit.Core\MyGit.Core.csproj" />
+  </ItemGroup>
+</Project>

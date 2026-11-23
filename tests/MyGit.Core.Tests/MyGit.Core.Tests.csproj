@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MyGit.Core\MyGit.Core.csproj" />
+    <ProjectReference Include="..\..\src\MyGit.GitHub\MyGit.GitHub.csproj" />
   </ItemGroup>
 </Project>
