@@ -25,6 +25,12 @@ public sealed partial class LocalBranchItemViewModel(LocalBranch branch, Branche
     [RelayCommand]
     private Task DeleteAsync() => owner.DeleteAsync(this);
 
+    [RelayCommand]
+    private void RebaseOnto() => owner.RequestRebase(this);
+
+    /// <summary>e.g. "Rebase feature/inventory onto main…" (set when the list loads).</summary>
+    public string RebaseText { get; init; } = string.Empty;
+
     public string Name => Branch.Name;
 
     public bool IsCurrent => Branch.IsCurrent;
@@ -76,6 +82,15 @@ public sealed partial class BranchesViewModel : ObservableObject
 
     /// <summary>Raised after the branch changed or branches were edited, so the window refreshes.</summary>
     public event Func<Task>? RepositoryChanged;
+
+    /// <summary>Raised to rebase the current branch onto a branch: (what to rebase onto, its name).</summary>
+    public event Func<string, string, Task>? RebaseRequested;
+
+    public void RequestRebase(LocalBranchItemViewModel item)
+    {
+        CloseRequested?.Invoke();
+        _ = RebaseRequested?.Invoke(item.Name, item.Name);
+    }
 
     /// <summary>Raised so the view can close the dropdown before a dialog or after switching.</summary>
     public event Action? CloseRequested;
@@ -268,7 +283,8 @@ public sealed partial class BranchesViewModel : ObservableObject
 
         foreach (var branch in _all.Local.Where(b => Matches(b.Name)))
         {
-            Local.Add(new LocalBranchItemViewModel(branch, this));
+            var current = _all.Local.FirstOrDefault(b => b.IsCurrent)?.Name;
+            Local.Add(new LocalBranchItemViewModel(branch, this) { RebaseText = current is null ? "Rebase onto this…" : $"Rebase {current} onto {branch.Name}…" });
         }
 
         foreach (var branch in _all.Remote.Where(b => Matches(b.Name)))

@@ -32,6 +32,8 @@ public sealed partial class HistoryView : UserControl
             CherryPickItem.Header = branch is null ? "Cherry-pick onto the current commit" : $"Cherry-pick onto {branch}";
             ResetItem.Header = branch is null ? "Reset to here… (switch to a branch first)" : $"Reset {branch} to here…";
             ResetItem.IsEnabled = branch is not null;
+            RebaseItem.Header = branch is null ? "Rebase onto here… (switch to a branch first)" : $"Rebase {branch} onto here…";
+            RebaseItem.IsEnabled = branch is not null;
         };
 
         CreateBranchItem.Click += (_, _) => WithCommit((vm, commit) => vm.CreateBranchAsync(commit, fromTag: false));
@@ -40,6 +42,7 @@ public sealed partial class HistoryView : UserControl
         CherryPickItem.Click += (_, _) => WithCommit((vm, commit) => vm.CherryPickAsync(commit));
         RevertItem.Click += (_, _) => WithCommit((vm, commit) => vm.RevertAsync(commit));
         ResetItem.Click += (_, _) => WithCommit((vm, commit) => vm.ResetAsync(commit));
+        RebaseItem.Click += (_, _) => WithCommit((vm, commit) => vm.RebaseOntoAsync(commit));
         CheckoutItem.Click += (_, _) => WithCommit((vm, commit) => vm.CheckoutAsync(commit));
         CopyShaItem.Click += (_, _) => WithCommit((vm, commit) => vm.CopyShaAsync(commit));
         CopyMessageItem.Click += (_, _) => WithCommit((vm, commit) => vm.CopyMessageAsync(commit));

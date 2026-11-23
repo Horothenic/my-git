@@ -3,6 +3,7 @@
              xmlns:vm="using:MyGit.App.ViewModels.Changes"
              xmlns:views="using:MyGit.App.Views"
              xmlns:changes="using:MyGit.Core.Changes"
+             xmlns:ops="using:MyGit.Core.Operations"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="MyGit.App.Views.ChangesView"
              x:DataType="vm:ChangesViewModel">
@@ -35,10 +36,33 @@
   <Grid ColumnDefinitions="320,4,*">
 
     <!-- ===== Left: Unstaged and Staged trees ===== -->
-    <Grid Grid.Column="0" RowDefinitions="Auto,*,4,Auto,*,Auto">
+    <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,4,Auto,*,Auto">
+
+      <!-- Conflicts: only while a rebase, merge, cherry-pick or revert is stopped -->
+      <StackPanel Grid.Row="0" IsVisible="{Binding HasConflicts}">
+        <Border Classes="list-header conflicts-header">
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <mi:MaterialIcon Kind="AlertOutline" Width="15" Height="15" Foreground="{DynamicResource DangerBrush}" />
+            <TextBlock FontWeight="SemiBold" Text="Conflicts" Foreground="{DynamicResource DangerBrush}" />
+            <TextBlock Text="{Binding ConflictCount}" Foreground="{DynamicResource DangerBrush}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <ListBox x:Name="ConflictList" Classes="stash-files" ItemsSource="{Binding ConflictFiles}"
+                 SelectedItem="{Binding SelectedConflict}" MaxHeight="180">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="changes:FileChange">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" ToolTip.Tip="{Binding Path}">
+                <mi:MaterialIcon Grid.Column="0" Kind="FileAlertOutline" Width="14" Height="14" Foreground="{DynamicResource DangerBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding Path}" TextTrimming="PrefixCharacterEllipsis" />
+                <TextBlock Grid.Column="2" Classes="status-letter conflicted" Text="!" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
 
       <!-- Unstaged header -->
-      <Border Grid.Row="0" Classes="list-header">
+      <Border Grid.Row="1" Classes="list-header">
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
             <Button Classes="header-button" Command="{Binding ToggleHiddenViewCommand}"
@@ -73,7 +97,7 @@
         </DockPanel>
       </Border>
 
-      <Panel Grid.Row="1">
+      <Panel Grid.Row="2">
         <TreeView x:Name="UnstagedTree" Classes="files" SelectionMode="Multiple"
                   ItemsSource="{Binding Unstaged.Roots}" ItemTemplate="{StaticResource FileNodeTemplate}">
           <TreeView.ContextMenu>
@@ -92,10 +116,10 @@
                    HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="16" />
       </Panel>
 
-      <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />
+      <GridSplitter Grid.Row="3" ResizeDirection="Rows" Classes="thin" />
 
       <!-- Staged header -->
-      <Border Grid.Row="3" Classes="list-header">
+      <Border Grid.Row="4" Classes="list-header">
         <DockPanel>
           <Button DockPanel.Dock="Right" Classes="header-button" Content="Unstage all" Command="{Binding UnstageAllCommand}" />
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
@@ -105,7 +129,7 @@
         </DockPanel>
       </Border>
 
-      <Panel Grid.Row="4">
+      <Panel Grid.Row="5">
         <TreeView x:Name="StagedTree" Classes="files" SelectionMode="Multiple"
                   ItemsSource="{Binding Staged.Roots}" ItemTemplate="{StaticResource FileNodeTemplate}">
           <TreeView.ContextMenu>
@@ -123,7 +147,7 @@
       </Panel>
 
       <!-- Stashes: changes put aside. Select one to see its files; right-click to apply, pop or delete. -->
-      <StackPanel Grid.Row="5" IsVisible="{Binding HasStashes}">
+      <StackPanel Grid.Row="6" IsVisible="{Binding HasStashes}">
         <Border Classes="list-header" BorderThickness="0,1,0,1">
           <DockPanel>
             <ToggleButton DockPanel.Dock="Left" Classes="expander-toggle" IsChecked="{Binding IsStashesExpanded}" Margin="0,0,6,0">
@@ -183,7 +207,7 @@
     <Grid Grid.Column="2" RowDefinitions="Auto,*,4,Auto">
 
       <!-- Diff header -->
-      <Border Grid.Row="0" Classes="list-header" IsVisible="{Binding Diff.HasFile}">
+      <Border Grid.Row="0" Classes="list-header" IsVisible="{Binding Diff.HasFile}" IsEnabled="{Binding IsDiffShown}">
         <DockPanel>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
             <Button Classes="header-button" Content="Discard file" Command="{Binding DiscardShownFileCommand}"
@@ -198,12 +222,68 @@
       </Border>
 
       <!-- Diff body (shared with the History tab) -->
-      <views:DiffView Grid.Row="1" DataContext="{Binding Diff}" />
+      <Panel Grid.Row="1" IsVisible="{Binding IsDiffShown}">
+        <views:DiffView DataContext="{Binding Diff}" />
+      </Panel>
+
+      <!-- Selected conflict: resolve the whole file -->
+      <DockPanel Grid.Row="0" Grid.RowSpan="2" IsVisible="{Binding IsConflictSelected}" Background="{DynamicResource WindowBackgroundBrush}">
+        <Border DockPanel.Dock="Top" Classes="list-header">
+          <DockPanel>
+            <WrapPanel DockPanel.Dock="Right" ItemSpacing="6" LineSpacing="4" IsEnabled="{Binding IsNotRunningTool}">
+              <Button Classes="header-button" Content="{Binding UseOursText}" Command="{Binding UseOursCommand}" ToolTip.Tip="{Binding OursLabel}" />
+              <Button Classes="header-button" Content="{Binding UseTheirsText}" Command="{Binding UseTheirsCommand}" ToolTip.Tip="{Binding TheirsLabel}" />
+              <Button Classes="header-button" Command="{Binding OpenConflictInDefaultAppCommand}"
+                      ToolTip.Tip="Open with the program Windows uses for this file type. Then Mark resolved.">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <mi:MaterialIcon Kind="OpenInNew" Width="12" Height="12" />
+                  <TextBlock Text="Open in default app" />
+                </StackPanel>
+              </Button>
+              <Button Classes="header-button" IsVisible="{Binding HasMergeTools}" ToolTip.Tip="Resolve it in a merge tool">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="Merge tool" />
+                  <mi:MaterialIcon Kind="ChevronDown" Width="12" Height="12" />
+                </StackPanel>
+                <Button.Flyout>
+                  <MenuFlyout ItemsSource="{Binding MergeTools}">
+                    <MenuFlyout.ItemContainerTheme>
+                      <ControlTheme TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}" x:DataType="ops:MergeTool">
+                        <Setter Property="Header" Value="{Binding Name}" />
+                        <Setter Property="Command" Value="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).RunMergeToolCommand}" />
+                        <Setter Property="CommandParameter" Value="{Binding}" />
+                      </ControlTheme>
+                    </MenuFlyout.ItemContainerTheme>
+                  </MenuFlyout>
+                </Button.Flyout>
+              </Button>
+              <Button Classes="header-button" Content="Mark resolved" Command="{Binding MarkResolvedCommand}"
+                      ToolTip.Tip="You fixed it yourself (no conflict markers left)" />
+            </WrapPanel>
+            <TextBlock FontWeight="SemiBold" Text="{Binding SelectedConflict.Path}" VerticalAlignment="Center" TextTrimming="PrefixCharacterEllipsis" />
+          </DockPanel>
+        </Border>
+
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="520" Margin="24">
+          <mi:MaterialIcon Kind="SourceMerge" Width="32" Height="32" Foreground="{DynamicResource TextMutedBrush}" />
+          <TextBlock Classes="caption" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" IsVisible="{Binding IsNotRunningTool}"
+                     Text="This file was changed on both sides. Keep one side with the buttons above, resolve it in a merge tool, or open it in your editor and then Mark resolved." />
+          <TextBlock FontSize="13" TextAlignment="Center" Text="{Binding RunningTool}" IsVisible="{Binding !IsNotRunningTool}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding OursExplanation}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding TheirsExplanation}" />
+        </StackPanel>
+      </DockPanel>
 
       <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />
 
+      <!-- While a rebase / merge / cherry-pick / revert is stopped, Continue commits instead -->
+      <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" Padding="14,12" IsVisible="{Binding IsOperationActive}">
+        <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap"
+                   Text="Resolve the conflicts, then press Continue in the yellow bar above: it commits the resolved files and goes on. No need to commit here." />
+      </Border>
+
       <!-- Commit box, plus the confirmation strip for the commit just made -->
-      <StackPanel Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}">
+      <StackPanel Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" IsVisible="{Binding IsCommitBoxVisible}">
         <StackPanel Spacing="8" Margin="12,10">
           <TextBox x:Name="SummaryBox" PlaceholderText="Summary (required)" Text="{Binding Summary}" MaxLength="200"
                    IsEnabled="{Binding IsNotCommitting}" />

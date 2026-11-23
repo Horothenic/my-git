@@ -44,6 +44,12 @@ public sealed partial class HistoryViewModel : ObservableObject
     /// <summary>Raised with an error for the message bar.</summary>
     public event Action<string>? MessageRaised;
 
+    /// <summary>Raised to rebase the current branch onto a commit: (commit id, short label).</summary>
+    public event Func<string, string, Task>? RebaseRequested;
+
+    public Task RebaseOntoAsync(CommitRowViewModel commit) =>
+        RebaseRequested?.Invoke(commit.Sha, $"{commit.ShortSha} “{commit.Subject}”") ?? Task.CompletedTask;
+
     /// <summary>Raised after a branch or tag was created or HEAD moved, so the window refreshes.</summary>
     public event Func<Task>? RepositoryChanged;
 

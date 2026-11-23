@@ -30,7 +30,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         SyncViewModel sync,
         History.HistoryViewModel history,
         BranchesViewModel branches,
-        UndoViewModel undo)
+        UndoViewModel undo,
+        OperationViewModel operation)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -42,6 +43,19 @@ public sealed partial class MainWindowViewModel : ObservableObject
         History = history;
         Branches = branches;
         Undo = undo;
+        Operation = operation;
+        Operation.MessageRaised += ShowMessage;
+        Operation.NoticeRaised += Sync.ShowNotice;
+        Operation.RepositoryChanged += RefreshAsync;
+        Branches.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
+        History.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
+        Changes.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Changes.ConflictCount))
+            {
+                Operation.ConflictCount = Changes.ConflictCount;
+            }
+        };
         Undo.MessageRaised += ShowMessage;
         Undo.NoticeRaised += Sync.ShowNotice;
         Undo.RepositoryChanged += RefreshAsync;
@@ -74,6 +88,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public BranchesViewModel Branches { get; }
 
     public UndoViewModel Undo { get; }
+
+    public OperationViewModel Operation { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
@@ -138,6 +154,15 @@ public sealed partial class MainWindowViewModel : ObservableObject
             await Sync.RefreshAsync(CurrentRepository.Path);
             await History.RefreshAsync(CurrentRepository.Path);
             await Undo.RefreshAsync(CurrentRepository.Path);
+            await Operation.RefreshAsync(CurrentRepository.Path);
+            Changes.Operation = Operation.State;
+
+            // git detaches HEAD while it rebases; say what's really going on.
+            if (branch is null && Operation.State is { Kind: Core.Operations.OperationKind.Rebase, Branch: { } rebasing })
+            {
+                BranchName = $"{rebasing} (rebasing)";
+            }
+            Operation.ConflictCount = Changes.ConflictCount;
             History.CurrentBranch = branch;
             await Changes.RefreshAsync();
         }
@@ -190,6 +215,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _ = Sync.RefreshAsync(null);
         _ = History.RefreshAsync(null);
         _ = Undo.RefreshAsync(null);
+        _ = Operation.RefreshAsync(null);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;

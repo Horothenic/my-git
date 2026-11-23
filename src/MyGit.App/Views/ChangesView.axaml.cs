@@ -50,6 +50,10 @@ public sealed partial class ChangesView : UserControl
 
         StashButton.Click += (_, _) => Run(vm => vm.StashAsync(Selection(UnstagedTree)));
 
+        // A conflict takes over the right side; picking a normal file gives it back.
+        UnstagedTree.SelectionChanged += (_, _) => { if (UnstagedTree.SelectedItems.Count > 0) { ConflictList.SelectedItem = null; } };
+        StagedTree.SelectionChanged += (_, _) => { if (StagedTree.SelectedItems.Count > 0) { ConflictList.SelectedItem = null; } };
+
         // Picking a file in a tree takes the diff back from a stash file, and the other way round.
         StashFilesList.SelectionChanged += (_, _) =>
         {
