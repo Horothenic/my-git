@@ -128,11 +128,52 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- Compact tabs: Changes / History / Stacks -->
+  <!-- Compact tabs (clone dialog and others) -->
   <Style Selector="TabItem">
     <Setter Property="FontSize" Value="13" />
     <Setter Property="MinHeight" Value="34" />
     <Setter Property="Padding" Value="14,0" />
+  </Style>
+
+  <!-- Main window tabs: Changes / History / Stacks, stretched across the window -->
+  <Style Selector="TabControl.main-tabs TabItem">
+    <Setter Property="MinHeight" Value="38" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="TabControl.main-tabs TabItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource ToolbarHoverBrush}" />
+  </Style>
+  <Style Selector="TabControl.main-tabs TabItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="TabControl.main-tabs TabItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource WindowBackgroundBrush}" />
+  </Style>
+  <Style Selector="TabControl.main-tabs TabItem:selected /template/ Border#PART_SelectedPipe">
+    <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+  </Style>
+
+  <!-- Number of changed files on the Changes tab -->
+  <Style Selector="Border.tab-count">
+    <Setter Property="Background" Value="{DynamicResource ToolbarHoverBrush}" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="MinWidth" Value="18" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.tab-count > TextBlock">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
   <!-- Placeholder for features that land in a later phase -->

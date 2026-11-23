@@ -98,15 +98,23 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     public partial bool IsFlat { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsUnstagedEmpty))]
+    [NotifyPropertyChangedFor(nameof(IsUnstagedEmpty), nameof(ChangedFileCount), nameof(HasChangedFiles))]
     public partial int UnstagedCount { get; set; }
 
     public bool IsUnstagedEmpty => UnstagedCount == 0;
 
     public bool IsStagedEmpty => StagedCount == 0;
 
+    /// <summary>For the count on the Changes tab: files in either list (hidden ones don't count).</summary>
+    public int ChangedFileCount => _visibleUnstagedCount + StagedCount;
+
+    // Unstaged files that aren't hidden, whichever list is showing.
+    private int _visibleUnstagedCount;
+
+    public bool HasChangedFiles => ChangedFileCount > 0;
+
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StagedCountText), nameof(CanCommit), nameof(IsStagedEmpty))]
+    [NotifyPropertyChangedFor(nameof(StagedCountText), nameof(CanCommit), nameof(IsStagedEmpty), nameof(ChangedFileCount), nameof(HasChangedFiles))]
     [NotifyCanExecuteChangedFor(nameof(CommitCommand))]
     public partial int StagedCount { get; set; }
 
@@ -520,6 +528,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         Unstaged.Update(IsShowingHidden ? hidden : visible, IsFlat);
         Staged.Update(_status.Staged, IsFlat);
 
+        _visibleUnstagedCount = visible.Count;
         UnstagedCount = Unstaged.FileCount;
         StagedCount = Staged.FileCount;
         HiddenCount = hidden.Count;
