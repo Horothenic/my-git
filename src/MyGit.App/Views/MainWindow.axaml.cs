@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using MyGit.App.Services;
 using MyGit.App.ViewModels;
 
@@ -24,6 +25,11 @@ public sealed partial class MainWindow : Window
         if (ViewModel is not null)
         {
             ViewModel.RepositoryPicker.CloseRequested += () => RepositoryButton.Flyout?.Hide();
+            ViewModel.Branches.CloseRequested += () => BranchButton.Flyout?.Hide();
+            if (BranchButton.Flyout is PopupFlyoutBase branchFlyout)
+            {
+                branchFlyout.Opening += (_, _) => _ = ViewModel.Branches.LoadAsync(ViewModel.CurrentRepository?.Path);
+            }
             ViewModel.DialogOpening += () => RepositoryButton.Flyout?.Hide();
             ViewModel.Account.DialogOpening += () => AccountButton.Flyout?.Hide();
         }

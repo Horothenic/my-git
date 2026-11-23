@@ -14,6 +14,7 @@ using MyGit.Core.Repositories;
 using MyGit.Core.Settings;
 using MyGit.Core.Sync;
 using MyGit.Core.History;
+using MyGit.Core.Branches;
 using MyGit.App.ViewModels.History;
 using MyGit.GitHub.Accounts;
 using MyGit.GitHub.Repositories;
@@ -44,6 +45,7 @@ public sealed class App : Application
             var commitService = new CommitService(git);
             var diffService = new DiffService(git);
             var hiddenFiles = new HiddenFilesStore(HiddenFilesStore.DefaultFilePath);
+            var historyService = new HistoryService(git);
 
             var themeService = new ThemeService(settingsStore);
             themeService.ApplySaved();
@@ -67,7 +69,8 @@ public sealed class App : Application
                 new AccountViewModel(accounts, dialogs, shell),
                 new ChangesViewModel(changesService, new PartialChangesService(git, changesService, diffService), commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell),
                 new SyncViewModel(new SyncService(git), dialogs),
-                new HistoryViewModel(new HistoryService(git), git, diffService, dialogs, shell));
+                new HistoryViewModel(historyService, git, diffService, dialogs, shell),
+                new BranchesViewModel(new BranchService(git), historyService, dialogs));
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;
