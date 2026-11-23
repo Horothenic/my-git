@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MyGit.App.ViewModels.Changes"
+             xmlns:views="using:MyGit.App.Views"
              xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              x:Class="MyGit.App.Views.ChangesView"
              x:DataType="vm:ChangesViewModel">
@@ -134,96 +135,8 @@
         </DockPanel>
       </Border>
 
-      <!-- Diff body: one of several states -->
-      <Panel Grid.Row="1">
-        <TextBlock Classes="caption" FontSize="13" Text="Select a file to see its changes."
-                   IsVisible="{Binding Diff.IsNone}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <TextBlock Classes="caption" FontSize="13" Text="Loading…"
-                   IsVisible="{Binding Diff.IsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <TextBlock Classes="caption" FontSize="13" Text="Binary file changed. There's no text diff to show."
-                   IsVisible="{Binding Diff.IsBinary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <TextBlock Classes="caption" FontSize="13" Text="{Binding Diff.NoTextChangesText}"
-                   IsVisible="{Binding Diff.IsNoTextChanges}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <TextBlock Foreground="{DynamicResource DangerBrush}" Text="{Binding Diff.ErrorText}" TextWrapping="Wrap"
-                   IsVisible="{Binding Diff.IsError}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" />
-        <StackPanel IsVisible="{Binding Diff.IsTooLarge}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
-          <TextBlock Classes="caption" FontSize="13" Text="This file is large (over 2 MB). Showing its diff may take a moment." />
-          <Button HorizontalAlignment="Center" Content="Load diff anyway" Command="{Binding Diff.LoadAnywayCommand}" />
-        </StackPanel>
-
-        <DockPanel IsVisible="{Binding Diff.HasLines}">
-
-          <!-- Bar for picked lines: "2 lines selected · Discard lines · Stage lines" -->
-          <Border DockPanel.Dock="Bottom" Classes="selection-bar" IsVisible="{Binding Diff.HasSelection}">
-            <DockPanel>
-              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-                <Button Classes="header-button" Content="Clear" Command="{Binding Diff.ClearPickedCommand}" ToolTip.Tip="Esc" />
-                <Button Classes="header-button" Content="Discard lines" Command="{Binding DiscardLinesCommand}"
-                        IsVisible="{Binding Diff.IsUnstaged}" ToolTip.Tip="Del" />
-                <Button Classes="header-button" Content="Stage lines" Command="{Binding ToggleStageLinesCommand}"
-                        IsVisible="{Binding Diff.IsUnstaged}" ToolTip.Tip="Enter" />
-                <Button Classes="header-button" Content="Unstage lines" Command="{Binding ToggleStageLinesCommand}"
-                        IsVisible="{Binding Diff.IsStaged}" ToolTip.Tip="Enter" />
-              </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                <TextBlock Text="{Binding Diff.SelectionText}" FontWeight="SemiBold" />
-                <TextBlock Classes="caption" Text="Shift+click for a range · Ctrl+click to add or remove" VerticalAlignment="Center" />
-              </StackPanel>
-            </DockPanel>
-          </Border>
-
-          <ListBox x:Name="DiffList" Classes="diff" ItemsSource="{Binding Diff.Rows}" Focusable="True">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:DiffRowViewModel">
-                <Panel>
-                  <!-- "@@ line 12 @@" between hunks, with its buttons -->
-                  <Border Classes="hunk-header" IsVisible="{Binding IsHunkHeader}">
-                    <DockPanel>
-                      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6"
-                                  IsVisible="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).Diff.CanEditLines}">
-                        <Button Classes="header-button" Content="Discard hunk"
-                                Command="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).DiscardHunkCommand}"
-                                CommandParameter="{Binding HunkIndex}"
-                                IsVisible="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).Diff.IsUnstaged}" />
-                        <Button Classes="header-button" Content="Stage hunk"
-                                Command="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).ToggleStageHunkCommand}"
-                                CommandParameter="{Binding HunkIndex}"
-                                IsVisible="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).Diff.IsUnstaged}" />
-                        <Button Classes="header-button" Content="Unstage hunk"
-                                Command="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).ToggleStageHunkCommand}"
-                                CommandParameter="{Binding HunkIndex}"
-                                IsVisible="{Binding $parent[UserControl].((vm:ChangesViewModel)DataContext).Diff.IsStaged}" />
-                      </StackPanel>
-                      <TextBlock Classes="hunk-title" Text="{Binding HunkHeader}" VerticalAlignment="Center" />
-                    </DockPanel>
-                  </Border>
-
-                  <!-- old | new. Click a red or green side to pick that line. -->
-                  <Grid ColumnDefinitions="*,1,*" IsVisible="{Binding IsLine}">
-                    <Border Grid.Column="0" Classes="diff-side" Tag="Left"
-                            Classes.removed="{Binding IsLeftRemoved}" Classes.empty="{Binding IsLeftEmpty}"
-                            Classes.selected="{Binding IsLeftSelected}">
-                      <Grid ColumnDefinitions="48,*">
-                        <TextBlock Grid.Column="0" Classes="line-number" Text="{Binding LeftNumber}" />
-                        <TextBlock Grid.Column="1" Classes="code" Text="{Binding LeftText}" />
-                      </Grid>
-                    </Border>
-                    <Border Grid.Column="1" Background="{DynamicResource BorderBrush}" />
-                    <Border Grid.Column="2" Classes="diff-side" Tag="Right"
-                            Classes.added="{Binding IsRightAdded}" Classes.empty="{Binding IsRightEmpty}"
-                            Classes.selected="{Binding IsRightSelected}">
-                      <Grid ColumnDefinitions="48,*">
-                        <TextBlock Grid.Column="0" Classes="line-number" Text="{Binding RightNumber}" />
-                        <TextBlock Grid.Column="1" Classes="code" Text="{Binding RightText}" />
-                      </Grid>
-                    </Border>
-                  </Grid>
-                </Panel>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </DockPanel>
-      </Panel>
+      <!-- Diff body (shared with the History tab) -->
+      <views:DiffView Grid.Row="1" DataContext="{Binding Diff}" />
 
       <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />
 

@@ -13,6 +13,8 @@ using MyGit.Core.Git;
 using MyGit.Core.Repositories;
 using MyGit.Core.Settings;
 using MyGit.Core.Sync;
+using MyGit.Core.History;
+using MyGit.App.ViewModels.History;
 using MyGit.GitHub.Accounts;
 using MyGit.GitHub.Repositories;
 
@@ -64,7 +66,8 @@ public sealed class App : Application
                 dialogs,
                 new AccountViewModel(accounts, dialogs, shell),
                 new ChangesViewModel(changesService, new PartialChangesService(git, changesService, diffService), commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell),
-                new SyncViewModel(new SyncService(git), dialogs));
+                new SyncViewModel(new SyncService(git), dialogs),
+                new HistoryViewModel(new HistoryService(git), git, diffService, dialogs, shell));
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;

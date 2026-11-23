@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MyGit.App.ViewModels.History"
+             xmlns:changes="using:MyGit.Core.Changes"
+             xmlns:controls="using:MyGit.App.Controls"
+             xmlns:views="using:MyGit.App.Views"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="MyGit.App.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+  <Grid RowDefinitions="*,4,320">
+
+    <!-- ===== Commit list with graph ===== -->
+    <Panel Grid.Row="0">
+      <ListBox x:Name="CommitList" Classes="commits" ItemsSource="{Binding Commits}"
+               SelectedItem="{Binding SelectedCommit}">
+        <ListBox.ContextMenu>
+          <ContextMenu x:Name="CommitMenu">
+            <MenuItem x:Name="CreateBranchItem" Header="Create branch here…" />
+            <MenuItem x:Name="CreateTagItem" Header="Create tag here…" />
+            <MenuItem x:Name="BranchFromTagItem" Header="Create branch from tag…" />
+            <Separator />
+            <MenuItem x:Name="CheckoutItem" Header="Check out this commit (detached)…" />
+            <MenuItem x:Name="CopyShaItem" Header="Copy commit id" />
+            <MenuItem x:Name="CopyMessageItem" Header="Copy message" />
+          </ContextMenu>
+        </ListBox.ContextMenu>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:CommitRowViewModel">
+            <Grid ColumnDefinitions="Auto,*,140,110" Height="26" Background="Transparent">
+              <controls:GraphCell Grid.Column="0" Row="{Binding Graph}" VerticalAlignment="Stretch"
+                                  Width="{Binding $parent[UserControl].((vm:HistoryViewModel)DataContext).GraphWidth}" />
+
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" ClipToBounds="True">
+                <ItemsControl ItemsSource="{Binding Refs}" IsVisible="{Binding HasRefs}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="4" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:RefLabelViewModel">
+                      <Border Classes="ref" Classes.head="{Binding IsHead}" Classes.local="{Binding IsLocal}"
+                              Classes.remote="{Binding IsRemote}" Classes.tag="{Binding IsTag}">
+                        <StackPanel Orientation="Horizontal" Spacing="3">
+                          <mi:MaterialIcon Kind="TagOutline" Width="11" Height="11" IsVisible="{Binding IsTag}" />
+                          <TextBlock Text="{Binding Name}" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{Binding Subject}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+
+              <TextBlock Grid.Column="2" Classes="caption" Text="{Binding Author}" VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis" Margin="8,0" />
+              <TextBlock Grid.Column="3" Classes="caption" Text="{Binding DateText}" ToolTip.Tip="{Binding DateToolTip}"
+                         VerticalAlignment="Center" Margin="0,0,10,0" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <TextBlock Classes="caption" FontSize="13" Text="No commits yet. Make your first one in the Changes tab."
+                 IsVisible="{Binding IsEmpty}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Panel>
+
+    <GridSplitter Grid.Row="1" ResizeDirection="Rows" Classes="thin" />
+
+    <!-- ===== Selected commit: details + files | diff ===== -->
+    <Grid Grid.Row="2" ColumnDefinitions="300,4,*">
+      <TextBlock Grid.ColumnSpan="3" Classes="caption" FontSize="13" Text="Select a commit to see its details."
+                 IsVisible="{Binding !HasSelection}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+      <DockPanel Grid.Column="0" IsVisible="{Binding HasSelection}">
+        <Border DockPanel.Dock="Top" Classes="list-header">
+          <StackPanel Spacing="4">
+            <SelectableTextBlock Text="{Binding DetailsMessage}" FontWeight="SemiBold" TextWrapping="Wrap" MaxHeight="90" />
+            <TextBlock Classes="caption" Text="{Binding DetailsMeta}" TextWrapping="Wrap" />
+            <Button Classes="link" Command="{Binding CopyDetailsShaCommand}" ToolTip.Tip="Copy the full commit id" Padding="0">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="{Binding DetailsShortSha}" FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" />
+                <mi:MaterialIcon Kind="ContentCopy" Width="12" Height="12" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Border>
+
+        <ListBox Classes="commit-files" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="changes:FileChange">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" ToolTip.Tip="{Binding Path}">
+                <mi:MaterialIcon Grid.Column="0" Kind="FileOutline" Width="14" Height="14" />
+                <TextBlock Grid.Column="1" Text="{Binding Path}" TextTrimming="PrefixCharacterEllipsis" />
+                <TextBlock Grid.Column="2" Classes="status-letter" Text="{Binding Letter}" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <GridSplitter Grid.Column="1" ResizeDirection="Columns" Classes="thin" IsVisible="{Binding HasSelection}" />
+
+      <!-- Visibility on a wrapper: inside, DataContext is the diff, whose HasSelection means something else. -->
+      <Panel Grid.Column="2" IsVisible="{Binding HasSelection}">
+        <views:DiffView DataContext="{Binding Diff}" />
+      </Panel>
+    </Grid>
+  </Grid>
+</UserControl>

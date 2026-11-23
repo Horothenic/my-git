@@ -22,8 +22,18 @@ public enum DiffState
     Error,
 }
 
+/// <summary>What the user asked to do with hunks or picked lines.</summary>
+public enum DiffAction
+{
+    /// <summary>Stage (in an Unstaged diff) or unstage (in a Staged diff).</summary>
+    ToggleStage,
+
+    /// <summary>Throw the change away (Unstaged diffs only).</summary>
+    Discard,
+}
+
 /// <summary>
-/// The right-hand diff panel for the selected file.
+/// The side-by-side diff panel. Shown by the Changes tab (editable) and the History tab (read-only).
 /// </summary>
 public sealed partial class DiffViewModel : ObservableObject
 {
@@ -68,6 +78,20 @@ public sealed partial class DiffViewModel : ObservableObject
 
     public bool HasFile => State != DiffState.None;
 
+    /// <summary>
+    /// Raised for hunk and line actions; the owner (the Changes tab) applies them with git.
+    /// Arguments: what to do, and which lines.
+    /// </summary>
+    public event Func<DiffAction, IReadOnlySet<DiffLineRef>, Task>? ActionRequested;
+
+    /// <summary>Text when nothing is selected, e.g. "Select a file to see its changes."</summary>
+    public string EmptyText { get; init; } = "Select a file to see its changes.";
+
+    /// <summary>True for diffs that can't be changed (a commit in the History tab).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditLines))]
+    public partial bool IsReadOnly { get; set; }
+
     /// <summary>The file shown, or null.</summary>
     [ObservableProperty]
     public partial FileChange? Change { get; set; }
@@ -100,7 +124,7 @@ public sealed partial class DiffViewModel : ObservableObject
     public string SelectionText => SelectedCount == 1 ? "1 line selected" : $"{SelectedCount} lines selected";
 
     /// <summary>Hunk and line buttons only make sense for plain text changes (not renames, conflicts...).</summary>
-    public bool CanEditLines => State == DiffState.Lines && Change is { } change && PartialChangesService.Supports(change);
+    public bool CanEditLines => !IsReadOnly && State == DiffState.Lines && Change is { } change && PartialChangesService.Supports(change);
 
     /// <summary>Click on a changed line. Ctrl adds or removes it, Shift selects the range from the last click.</summary>
     public void Pick(DiffRowViewModel row, DiffSide side, bool ctrl, bool shift)
@@ -148,6 +172,24 @@ public sealed partial class DiffViewModel : ObservableObject
     }
 
     public void ClearSelection() => ClearSelection(keepAnchor: false);
+
+    [RelayCommand]
+    private Task ToggleStageHunkAsync(int hunkIndex) => RequestAsync(DiffAction.ToggleStage, HunkLines(hunkIndex));
+
+    [RelayCommand]
+    private Task DiscardHunkAsync(int hunkIndex) => RequestAsync(DiffAction.Discard, HunkLines(hunkIndex));
+
+    [RelayCommand]
+    private Task ToggleStageLinesAsync() => RequestAsync(DiffAction.ToggleStage, Selection.ToHashSet());
+
+    [RelayCommand]
+    private Task DiscardLinesAsync() => RequestAsync(DiffAction.Discard, Selection.ToHashSet());
+
+    private IReadOnlySet<DiffLineRef> HunkLines(int hunkIndex) =>
+        CurrentDiff is { } diff ? PatchBuilder.AllChanges(diff, hunkIndex) : new HashSet<DiffLineRef>();
+
+    private Task RequestAsync(DiffAction action, IReadOnlySet<DiffLineRef> lines) =>
+        CanEditLines && lines.Count > 0 && ActionRequested is { } handler ? handler(action, lines) : Task.CompletedTask;
 
     /// <summary>The bar's Clear button and Esc.</summary>
     [RelayCommand]
@@ -222,9 +264,26 @@ public sealed partial class DiffViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectionText));
     }
 
-    /// <summary>Shows the diff of a file, or clears the panel when <paramref name="change"/> is null.</summary>
-    public async Task ShowAsync(string repositoryPath, FileChange? change, bool staged, bool forceLarge = false)
+    /// <summary>Shows a file of a commit (read-only), or clears the panel when <paramref name="file"/> is null.</summary>
+    public Task ShowCommitFileAsync(string repositoryPath, FileChange? file, Func<CancellationToken, Task<FileDiff>> load)
     {
+        IsReadOnly = true;
+        return LoadAsync(repositoryPath, file, staged: false, forceLarge: true, load);
+    }
+
+    /// <summary>Shows the diff of a file, or clears the panel when <paramref name="change"/> is null.</summary>
+    public Task ShowAsync(string repositoryPath, FileChange? change, bool staged, bool forceLarge = false)
+    {
+        IsReadOnly = false;
+        return LoadAsync(repositoryPath, change, staged, forceLarge,
+            token => _diffService.GetDiffAsync(repositoryPath, change!, staged, token));
+    }
+
+    private Func<CancellationToken, Task<FileDiff>>? _lastLoad;
+
+    private async Task LoadAsync(string repositoryPath, FileChange? change, bool staged, bool forceLarge, Func<CancellationToken, Task<FileDiff>> load)
+    {
+        _lastLoad = load;
         _loading?.Cancel();
         _loading = new CancellationTokenSource();
         var token = _loading.Token;
@@ -262,7 +321,7 @@ public sealed partial class DiffViewModel : ObservableObject
 
         try
         {
-            var diff = await _diffService.GetDiffAsync(repositoryPath, change, staged, token);
+            var diff = await load(token);
             indicator.Cancel();
             if (token.IsCancellationRequested || (isReload && diff.RawText == CurrentDiff?.RawText))
             {
@@ -318,5 +377,5 @@ public sealed partial class DiffViewModel : ObservableObject
 
     [RelayCommand]
     private Task LoadAnywayAsync() =>
-        _repositoryPath is null ? Task.CompletedTask : ShowAsync(_repositoryPath, Change, IsStaged, forceLarge: true);
+        _repositoryPath is null || _lastLoad is null ? Task.CompletedTask : LoadAsync(_repositoryPath, Change, IsStaged, forceLarge: true, _lastLoad);
 }

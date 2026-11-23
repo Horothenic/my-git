@@ -340,10 +340,7 @@
               <TextBlock Text="History" VerticalAlignment="Center" />
             </StackPanel>
           </TabItem.Header>
-          <Border Classes="placeholder">
-            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Text="Commit graph, tags and branch-from-commit arrive in Phase 5." />
-          </Border>
+          <views:HistoryView DataContext="{Binding History}" />
         </TabItem>
         <TabItem>
           <TabItem.Header>
