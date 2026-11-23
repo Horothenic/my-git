@@ -13,6 +13,7 @@ The approved My Git app icon: a near-black rounded square, a white outline crest
 | `svg/my-git-icon.svg` | Master vector, for 48 px and larger |
 | `svg/my-git-icon-medium.svg` | Thicker strokes, for 24–40 px |
 | `svg/my-git-icon-small.svg` | Thickest strokes, no top dots, for 16–20 px |
+| `my-git-outline-white.ico`, `my-git-outline-black.ico` | Outline-only shield (no background) for the window title bar, on dark and light themes |
 | `png/contact-sheet.png` | All sizes side by side, to check the icon by eye |
 | `render_icons.py` | Regenerates everything above (`python render_icons.py`, needs Pillow) |
 
@@ -38,6 +39,7 @@ The approved My Git app icon: a near-black rounded square, a white outline crest
 | Element | Value |
 |---|---|
 | Background | `#161615`, corner radius 26 |
+| Artwork scale | Shield and glyph drawn at 70% of the grid, centred on (60, 61) (`ART_SCALE`) |
 | Foreground | `#FFFFFF` |
 | Shield ("crest", peaked top edge) | `M22 27 C40 27 50 22 60 14 C70 22 80 27 98 27 V58 C98 84 82 100 60 108 C38 100 22 84 22 58 Z`, round joins |
 | Glyph | Branches from (48,42) and (72,42) curve into (60,68), stem down to the commit at (60,79) |

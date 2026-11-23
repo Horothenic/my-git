@@ -24,7 +24,7 @@ SUPERSAMPLE = 8  # draw 8x larger, then downscale for smooth edges
 
 # How big the shield and glyph are inside the rounded square (1.0 = original artwork).
 # Strokes keep their tuned widths; only positions shrink toward ART_CENTER.
-ART_SCALE = 0.8
+ART_SCALE = 0.7
 ART_CENTER = (60, 61)
 
 # Outline-only variants (no background) for the window title bar.
@@ -103,9 +103,9 @@ def flatten(path, steps=48):
 
 
 def render(size: int, background: bool = True, color: str = FOREGROUND) -> Image.Image:
+    tier = TIERS[tier_for(size)]
     # Without the rounded square there's nothing to leave room for: use the full artwork size.
     art_scale = ART_SCALE if background else 1.0
-    tier = TIERS[tier_for(size)]
     scale = size * SUPERSAMPLE / 120
 
     canvas = Image.new("RGBA", (size * SUPERSAMPLE,) * 2, (0, 0, 0, 0))
