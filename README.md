@@ -18,6 +18,8 @@ Focus areas: rebase and interactive rebase, a safe sync workflow, and **stacked 
 dotnet run --project src/MyGit.App
 ```
 
+Every local build also copies the runnable app to `app\` at the repo root (ignored by git), so you can always launch `app\MyGit.exe`. If My Git is running during a build, its files are locked: the build still succeeds but warns that `app\` wasn't updated.
+
 ## Test
 
 ```powershell
