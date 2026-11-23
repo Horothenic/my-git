@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MyGit.App.ViewModels"
+        xmlns:views="using:MyGit.App.Views"
         xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
         x:Class="MyGit.App.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -273,10 +274,7 @@
       <!-- Repository open: main tabs -->
       <TabControl IsVisible="{Binding HasRepository}" Padding="0">
         <TabItem Header="Changes">
-          <Border Classes="placeholder">
-            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Text="Unstaged and staged trees, side-by-side diff and the commit box arrive in Phase 3." />
-          </Border>
+          <views:ChangesView DataContext="{Binding Changes}" />
         </TabItem>
         <TabItem Header="History">
           <Border Classes="placeholder">

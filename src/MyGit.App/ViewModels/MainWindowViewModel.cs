@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MyGit.App.Services;
+using MyGit.App.ViewModels.Changes;
 using MyGit.Core.Git;
 using MyGit.Core.Repositories;
 using MyGit.Core.Settings;
@@ -24,13 +25,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
         ThemeService themeService,
         IFolderPicker folderPicker,
         IDialogService dialogs,
-        AccountViewModel account)
+        AccountViewModel account,
+        ChangesViewModel changes)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
         _themeService = themeService;
         _dialogs = dialogs;
         Account = account;
+        Changes = changes;
+        Changes.MessageRaised += ShowMessage;
+        Changes.Committed += () => _ = RefreshAsync();
 
         RepositoryPicker = new RepositoryPickerViewModel(repositoryStore, repositoryService, folderPicker);
         RepositoryPicker.RepositoryOpened += item => _ = OpenRepositoryAsync(item);
@@ -41,6 +46,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public RepositoryPickerViewModel RepositoryPicker { get; }
 
     public AccountViewModel Account { get; }
+
+    public ChangesViewModel Changes { get; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
@@ -114,6 +121,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         {
             var branch = await _repositoryService.GetCurrentBranchAsync(CurrentRepository.Path);
             BranchName = branch ?? "Detached HEAD";
+            Changes.BranchName = branch ?? string.Empty;
+            await Changes.RefreshAsync();
         }
         catch (GitCommandException exception)
         {
@@ -152,6 +161,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _settingsStore.Settings.LastRepositoryPath = item.Path;
         _settingsStore.Save();
 
+        await Changes.OpenAsync(item.Path);
         await RefreshAsync();
     }
 
@@ -159,6 +169,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     {
         CurrentRepository = null;
         BranchName = "—";
+        _ = Changes.OpenAsync(null);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;

@@ -3,8 +3,12 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using MyGit.App.Services;
 using MyGit.App.ViewModels;
+using MyGit.App.ViewModels.Changes;
 using MyGit.App.Views;
+using MyGit.Core.Changes;
 using MyGit.Core.Clone;
+using MyGit.Core.Commits;
+using MyGit.Core.Diffs;
 using MyGit.Core.Git;
 using MyGit.Core.Repositories;
 using MyGit.Core.Settings;
@@ -33,6 +37,10 @@ public sealed class App : Application
             var cloneService = new CloneService(git);
             var gitHubRepositories = new GitHubRepositoryService(accounts);
             var deviceFlow = new DeviceFlowSignIn();
+            var changesService = new ChangesService(git);
+            var commitService = new CommitService(git);
+            var diffService = new DiffService(git);
+            var hiddenFiles = new HiddenFilesStore(HiddenFilesStore.DefaultFilePath);
 
             var themeService = new ThemeService(settingsStore);
             themeService.ApplySaved();
@@ -53,7 +61,8 @@ public sealed class App : Application
                 themeService,
                 new FolderPicker(window),
                 dialogs,
-                new AccountViewModel(accounts, dialogs, shell));
+                new AccountViewModel(accounts, dialogs, shell),
+                new ChangesViewModel(changesService, commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell));
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;

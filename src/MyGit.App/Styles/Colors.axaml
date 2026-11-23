@@ -19,6 +19,11 @@
       <SolidColorBrush x:Key="AccentSubtleBrush" Color="#1B3354" />
       <SolidColorBrush x:Key="DangerBrush" Color="#F47067" />
       <SolidColorBrush x:Key="SuccessBrush" Color="#57AB5A" />
+      <SolidColorBrush x:Key="DiffAddedBrush" Color="#1F3A2A" />
+      <SolidColorBrush x:Key="DiffRemovedBrush" Color="#45252A" />
+      <SolidColorBrush x:Key="DiffEmptyBrush" Color="#1A1E23" />
+      <SolidColorBrush x:Key="HunkHeaderBrush" Color="#1B2B40" />
+      <SolidColorBrush x:Key="HunkHeaderTextBrush" Color="#8DB8F0" />
       <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#3D2E00" />
       <SolidColorBrush x:Key="WarningTextBrush" Color="#E3B341" />
       <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#4493F8" />
@@ -38,6 +43,11 @@
       <SolidColorBrush x:Key="AccentSubtleBrush" Color="#DDF4FF" />
       <SolidColorBrush x:Key="DangerBrush" Color="#CF222E" />
       <SolidColorBrush x:Key="SuccessBrush" Color="#1A7F37" />
+      <SolidColorBrush x:Key="DiffAddedBrush" Color="#DAFBE1" />
+      <SolidColorBrush x:Key="DiffRemovedBrush" Color="#FFEBE9" />
+      <SolidColorBrush x:Key="DiffEmptyBrush" Color="#F3F4F6" />
+      <SolidColorBrush x:Key="HunkHeaderBrush" Color="#DDF4FF" />
+      <SolidColorBrush x:Key="HunkHeaderTextBrush" Color="#0550AE" />
       <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#FFF8C5" />
       <SolidColorBrush x:Key="WarningTextBrush" Color="#7D4E00" />
       <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#0969DA" />

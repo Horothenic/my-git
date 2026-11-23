@@ -10,4 +10,7 @@ public interface IDialogService
 
     /// <summary>Shows the clone dialog. Returns the cloned folder, or null if cancelled.</summary>
     Task<string?> ShowCloneAsync();
+
+    /// <summary>Asks a yes/no question with a red confirm button. Returns true if confirmed.</summary>
+    Task<bool> ConfirmAsync(string title, string message, string confirmText);
 }

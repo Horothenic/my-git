@@ -1,0 +1,225 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MyGit.App.ViewModels.Changes"
+             xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             x:Class="MyGit.App.Views.ChangesView"
+             x:DataType="vm:ChangesViewModel">
+
+  <UserControl.Styles>
+    <!-- Folders open or closed as the view model says (and remember it across refreshes). -->
+    <Style Selector="TreeView.files TreeViewItem" x:DataType="vm:FileTreeNodeViewModel">
+      <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+    </Style>
+  </UserControl.Styles>
+
+  <UserControl.Resources>
+    <!-- One row in either file tree -->
+    <TreeDataTemplate x:Key="FileNodeTemplate" DataType="vm:FileTreeNodeViewModel" ItemsSource="{Binding Children}">
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" Background="Transparent" ToolTip.Tip="{Binding ToolTip}">
+        <Panel Grid.Column="0" Width="16" VerticalAlignment="Center">
+          <mi:MaterialIcon Kind="FolderOutline" Width="15" Height="15" IsVisible="{Binding IsFolder}" />
+          <mi:MaterialIcon Kind="FileOutline" Width="15" Height="15" IsVisible="{Binding IsFile}" />
+        </Panel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="caption" Text="{Binding FileCount, StringFormat='({0})'}" IsVisible="{Binding IsFolder}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Classes="status-letter" Text="{Binding Letter}"
+                   Classes.added="{Binding IsAdded}" Classes.deleted="{Binding IsDeleted}" Classes.conflicted="{Binding IsConflicted}" />
+      </Grid>
+    </TreeDataTemplate>
+  </UserControl.Resources>
+
+  <Grid ColumnDefinitions="320,4,*">
+
+    <!-- ===== Left: Unstaged and Staged trees ===== -->
+    <Grid Grid.Column="0" RowDefinitions="Auto,*,4,Auto,*">
+
+      <!-- Unstaged header -->
+      <Border Grid.Row="0" Classes="list-header">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+            <Button Classes="header-button" Command="{Binding ToggleHiddenViewCommand}"
+                    Classes.on="{Binding IsShowingHidden}"
+                    ToolTip.Tip="Show hidden files (Ctrl+H). Select files and press H to hide or unhide them.">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <mi:MaterialIcon Kind="EyeOffOutline" Width="14" Height="14" IsVisible="{Binding IsShowingChanges}" />
+                <mi:MaterialIcon Kind="EyeOutline" Width="14" Height="14" IsVisible="{Binding IsShowingHidden}" />
+                <TextBlock Text="{Binding HiddenCount}" />
+              </StackPanel>
+            </Button>
+            <Button Classes="header-button" Command="{Binding ToggleFlatCommand}" ToolTip.Tip="Folder tree or flat list">
+              <Panel>
+                <mi:MaterialIcon Kind="FileTreeOutline" Width="14" Height="14" IsVisible="{Binding !IsFlat}" />
+                <mi:MaterialIcon Kind="FormatListBulleted" Width="14" Height="14" IsVisible="{Binding IsFlat}" />
+              </Panel>
+            </Button>
+            <Button Classes="header-button" Content="Stage all" Command="{Binding StageAllCommand}"
+                    IsVisible="{Binding IsShowingChanges}" ToolTip.Tip="Stage every file shown (hidden files are skipped)" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock FontWeight="SemiBold" Text="{Binding UnstagedTitle}" />
+            <TextBlock Classes="caption" Text="{Binding UnstagedCount}" VerticalAlignment="Center" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Panel Grid.Row="1">
+        <TreeView x:Name="UnstagedTree" Classes="files" SelectionMode="Multiple"
+                  ItemsSource="{Binding Unstaged.Roots}" ItemTemplate="{StaticResource FileNodeTemplate}">
+          <TreeView.ContextMenu>
+            <ContextMenu>
+              <MenuItem x:Name="UnstagedStageItem" Header="Stage" InputGesture="Enter" />
+              <MenuItem x:Name="UnstagedDiscardItem" Header="Discard changes…" InputGesture="Delete" />
+              <MenuItem x:Name="UnstagedHideItem" Header="Hide" InputGesture="H" />
+              <Separator />
+              <MenuItem x:Name="UnstagedOpenItem" Header="Open in editor" />
+              <MenuItem x:Name="UnstagedExplorerItem" Header="Show in Explorer" />
+              <MenuItem x:Name="UnstagedCopyItem" Header="Copy path" />
+            </ContextMenu>
+          </TreeView.ContextMenu>
+        </TreeView>
+        <TextBlock Classes="caption" Text="{Binding UnstagedEmptyText}" IsVisible="{Binding IsUnstagedEmpty}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="16" />
+      </Panel>
+
+      <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />
+
+      <!-- Staged header -->
+      <Border Grid.Row="3" Classes="list-header">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="header-button" Content="Unstage all" Command="{Binding UnstageAllCommand}" />
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <TextBlock FontWeight="SemiBold" Text="Staged" />
+            <TextBlock Classes="caption" Text="{Binding StagedCount}" VerticalAlignment="Center" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Panel Grid.Row="4">
+        <TreeView x:Name="StagedTree" Classes="files" SelectionMode="Multiple"
+                  ItemsSource="{Binding Staged.Roots}" ItemTemplate="{StaticResource FileNodeTemplate}">
+          <TreeView.ContextMenu>
+            <ContextMenu>
+              <MenuItem x:Name="StagedUnstageItem" Header="Unstage" InputGesture="Enter" />
+              <Separator />
+              <MenuItem x:Name="StagedOpenItem" Header="Open in editor" />
+              <MenuItem x:Name="StagedExplorerItem" Header="Show in Explorer" />
+              <MenuItem x:Name="StagedCopyItem" Header="Copy path" />
+            </ContextMenu>
+          </TreeView.ContextMenu>
+        </TreeView>
+        <TextBlock Classes="caption" Text="Select files above and press Enter to stage them." IsVisible="{Binding IsStagedEmpty}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="16" />
+      </Panel>
+    </Grid>
+
+    <GridSplitter Grid.Column="1" ResizeDirection="Columns" Classes="thin" />
+
+    <!-- ===== Right: diff and commit box ===== -->
+    <Grid Grid.Column="2" RowDefinitions="Auto,*,4,Auto">
+
+      <!-- Diff header -->
+      <Border Grid.Row="0" Classes="list-header" IsVisible="{Binding Diff.HasFile}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+            <Button Classes="header-button" Content="Discard file" Command="{Binding DiscardShownFileCommand}"
+                    IsVisible="{Binding Diff.IsUnstaged}" />
+            <Button Classes="header-button" Content="Stage file" Command="{Binding StageShownFileCommand}"
+                    IsVisible="{Binding Diff.IsUnstaged}" />
+            <Button Classes="header-button" Content="Unstage file" Command="{Binding StageShownFileCommand}"
+                    IsVisible="{Binding Diff.IsStaged}" />
+          </StackPanel>
+          <SelectableTextBlock FontWeight="SemiBold" Text="{Binding Diff.Title}" VerticalAlignment="Center" TextTrimming="PrefixCharacterEllipsis" />
+        </DockPanel>
+      </Border>
+
+      <!-- Diff body: one of several states -->
+      <Panel Grid.Row="1">
+        <TextBlock Classes="caption" FontSize="13" Text="Select a file to see its changes."
+                   IsVisible="{Binding Diff.IsNone}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Classes="caption" FontSize="13" Text="Loading…"
+                   IsVisible="{Binding Diff.IsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Classes="caption" FontSize="13" Text="Binary file changed. There's no text diff to show."
+                   IsVisible="{Binding Diff.IsBinary}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Classes="caption" FontSize="13" Text="{Binding Diff.NoTextChangesText}"
+                   IsVisible="{Binding Diff.IsNoTextChanges}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <TextBlock Foreground="{DynamicResource DangerBrush}" Text="{Binding Diff.ErrorText}" TextWrapping="Wrap"
+                   IsVisible="{Binding Diff.IsError}" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24" />
+        <StackPanel IsVisible="{Binding Diff.IsTooLarge}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+          <TextBlock Classes="caption" FontSize="13" Text="This file is large (over 2 MB). Showing its diff may take a moment." />
+          <Button HorizontalAlignment="Center" Content="Load diff anyway" Command="{Binding Diff.LoadAnywayCommand}" />
+        </StackPanel>
+
+        <ListBox Classes="diff" ItemsSource="{Binding Diff.Rows}" IsVisible="{Binding Diff.HasLines}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:DiffRowViewModel">
+              <Panel>
+                <!-- "@@ line 12 @@" between hunks -->
+                <Border Classes="hunk-header" IsVisible="{Binding IsHunkHeader}">
+                  <TextBlock Text="{Binding HunkHeader}" />
+                </Border>
+
+                <!-- old | new -->
+                <Grid ColumnDefinitions="*,1,*" IsVisible="{Binding IsLine}">
+                  <Grid Grid.Column="0" ColumnDefinitions="48,*" Classes="diff-side"
+                        Classes.removed="{Binding IsLeftRemoved}" Classes.empty="{Binding IsLeftEmpty}">
+                    <TextBlock Grid.Column="0" Classes="line-number" Text="{Binding LeftNumber}" />
+                    <TextBlock Grid.Column="1" Classes="code" Text="{Binding LeftText}" />
+                  </Grid>
+                  <Border Grid.Column="1" Background="{DynamicResource BorderBrush}" />
+                  <Grid Grid.Column="2" ColumnDefinitions="48,*" Classes="diff-side"
+                        Classes.added="{Binding IsRightAdded}" Classes.empty="{Binding IsRightEmpty}">
+                    <TextBlock Grid.Column="0" Classes="line-number" Text="{Binding RightNumber}" />
+                    <TextBlock Grid.Column="1" Classes="code" Text="{Binding RightText}" />
+                  </Grid>
+                </Grid>
+              </Panel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Panel>
+
+      <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />
+
+      <!-- Commit box, plus the confirmation strip for the commit just made -->
+      <StackPanel Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}">
+        <StackPanel Spacing="8" Margin="12,10">
+          <TextBox x:Name="SummaryBox" PlaceholderText="Summary (required)" Text="{Binding Summary}" MaxLength="200"
+                   IsEnabled="{Binding IsNotCommitting}" />
+          <TextBox PlaceholderText="Description" Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap"
+                   MinHeight="60" MaxHeight="200" IsEnabled="{Binding IsNotCommitting}" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="accent" Command="{Binding CommitCommand}" ToolTip.Tip="Ctrl+Enter">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <mi:MaterialIcon Kind="Loading" Width="14" Height="14" Classes="spin" IsVisible="{Binding IsCommitting}" />
+                <TextBlock Text="{Binding CommitButtonText}" />
+              </StackPanel>
+            </Button>
+            <StackPanel Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+              <CheckBox Content="Amend last commit" IsChecked="{Binding IsAmend}" IsEnabled="{Binding IsNotCommitting}" />
+              <TextBlock Classes="caption" Text="{Binding StagedCountText}" VerticalAlignment="Center" />
+            </StackPanel>
+          </DockPanel>
+        </StackPanel>
+
+        <Border Classes="commit-done" IsVisible="{Binding HasLastCommit}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="link" Command="{Binding DismissLastCommitCommand}" AutomationProperties.Name="Dismiss"
+                    ToolTip.Tip="Hide this message (the commit stays)" Margin="4,0,0,0">
+              <mi:MaterialIcon Kind="Close" Width="14" Height="14" Foreground="{DynamicResource TextSecondaryBrush}" />
+            </Button>
+            <Button DockPanel.Dock="Right" Classes="link" Content="Undo" Command="{Binding UndoLastCommitCommand}"
+                    ToolTip.Tip="Take this commit back: its files go back to Staged and its message back into the box" />
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <mi:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16" Foreground="{DynamicResource SuccessBrush}" />
+              <TextBlock Text="{Binding LastCommitTitle}" Foreground="{DynamicResource SuccessBrush}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="caption" Text="{Binding LastCommitDetails}" VerticalAlignment="Center"
+                         FontFamily="Cascadia Mono, Consolas, monospace" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>
