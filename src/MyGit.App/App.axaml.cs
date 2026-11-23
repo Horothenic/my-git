@@ -12,6 +12,7 @@ using MyGit.Core.Diffs;
 using MyGit.Core.Git;
 using MyGit.Core.Repositories;
 using MyGit.Core.Settings;
+using MyGit.Core.Sync;
 using MyGit.GitHub.Accounts;
 using MyGit.GitHub.Repositories;
 
@@ -62,7 +63,8 @@ public sealed class App : Application
                 new FolderPicker(window),
                 dialogs,
                 new AccountViewModel(accounts, dialogs, shell),
-                new ChangesViewModel(changesService, new PartialChangesService(git, changesService, diffService), commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell));
+                new ChangesViewModel(changesService, new PartialChangesService(git, changesService, diffService), commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell),
+                new SyncViewModel(new SyncService(git), dialogs));
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;

@@ -26,7 +26,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         IFolderPicker folderPicker,
         IDialogService dialogs,
         AccountViewModel account,
-        ChangesViewModel changes)
+        ChangesViewModel changes,
+        SyncViewModel sync)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -34,8 +35,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _dialogs = dialogs;
         Account = account;
         Changes = changes;
+        Sync = sync;
+        Sync.MessageRaised += ShowMessage;
+        Sync.RepositoryChanged += RefreshAsync;
         Changes.MessageRaised += ShowMessage;
         Changes.Committed += () => _ = RefreshAsync();
+        Changes.ChangedOnDisk += RefreshAsync;
 
         RepositoryPicker = new RepositoryPickerViewModel(repositoryStore, repositoryService, folderPicker);
         RepositoryPicker.RepositoryOpened += item => _ = OpenRepositoryAsync(item);
@@ -49,6 +54,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
 
     public ChangesViewModel Changes { get; }
 
+    public SyncViewModel Sync { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRepository), nameof(RepositoryName))]
     public partial RepositoryItemViewModel? CurrentRepository { get; set; }
@@ -60,19 +67,6 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>Branch name, or a short description when HEAD is detached.</summary>
     [ObservableProperty]
     public partial string BranchName { get; set; } = "—";
-
-    // Sync counts are filled in Phase 4 (fetch/pull/push). Badges hide at 0.
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasCommitsToPull))]
-    public partial int CommitsToPull { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasCommitsToPush))]
-    public partial int CommitsToPush { get; set; }
-
-    public bool HasCommitsToPull => CommitsToPull > 0;
-
-    public bool HasCommitsToPush => CommitsToPush > 0;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMessage))]
@@ -122,6 +116,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             var branch = await _repositoryService.GetCurrentBranchAsync(CurrentRepository.Path);
             BranchName = branch ?? "Detached HEAD";
             Changes.BranchName = branch ?? string.Empty;
+            await Sync.RefreshAsync(CurrentRepository.Path);
             await Changes.RefreshAsync();
         }
         catch (GitCommandException exception)
@@ -170,6 +165,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         CurrentRepository = null;
         BranchName = "—";
         _ = Changes.OpenAsync(null);
+        _ = Sync.RefreshAsync(null);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;
