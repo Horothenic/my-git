@@ -19,6 +19,16 @@ public sealed class CloneProgressTests
         Assert.Equal(detail, progress.Detail);
     }
 
+    [Fact]
+    public void Parse_ReadsCounts()
+    {
+        var progress = CloneProgress.Parse("Receiving objects:  64% (1290/2015), 41.20 MiB | 10.30 MiB/s");
+
+        Assert.NotNull(progress);
+        Assert.Equal(1290, progress.Current);
+        Assert.Equal(2015, progress.Total);
+    }
+
     [Theory]
     [InlineData("Cloning into 'my-git'...")]
     [InlineData("remote: Enumerating objects: 512, done.")]

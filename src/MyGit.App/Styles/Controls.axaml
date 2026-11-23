@@ -92,6 +92,14 @@
     <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
   </Style>
 
+  <!-- Clone checklist rows -->
+  <Style Selector="TextBlock.active">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.pending">
+    <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+  </Style>
+
   <!-- Small grey label, e.g. "cloned" -->
   <Style Selector="Border.tag">
     <Setter Property="Background" Value="{DynamicResource ToolbarHoverBrush}" />

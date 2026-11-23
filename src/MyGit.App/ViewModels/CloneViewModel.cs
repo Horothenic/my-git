@@ -96,22 +96,41 @@ public sealed partial class CloneViewModel : ObservableObject
     public partial string DestinationFolder { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanClone), nameof(IsNotCloning))]
-    public partial bool IsCloning { get; set; }
+    [NotifyPropertyChangedFor(nameof(IsForm), nameof(IsCloning), nameof(IsStopping), nameof(IsFailed), nameof(IsBusy), nameof(CanClone), nameof(WindowTitle))]
+    public partial CloneMode Mode { get; set; } = CloneMode.Form;
 
-    public bool IsNotCloning => !IsCloning;
+    public bool IsForm => Mode == CloneMode.Form;
+
+    public bool IsCloning => Mode == CloneMode.Cloning;
+
+    public bool IsStopping => Mode == CloneMode.Stopping;
+
+    public bool IsFailed => Mode == CloneMode.Failed;
+
+    /// <summary>True while git runs (cloning or stopping): the window can't be dismissed.</summary>
+    public bool IsBusy => Mode is CloneMode.Cloning or CloneMode.Stopping;
+
+    public string WindowTitle => Mode == CloneMode.Form ? "Clone a repository" : $"Cloning {CloningName}";
+
+    /// <summary>The checklist shown while cloning.</summary>
+    public ObservableCollection<CloneStageViewModel> Stages { get; } = [];
+
+    /// <summary>Repository name shown in the cloning popup, e.g. "game-client".</summary>
+    [ObservableProperty]
+    public partial string CloningName { get; set; } = string.Empty;
+
+    /// <summary>Owner/name and visibility, or the URL when cloning from the URL tab.</summary>
+    [ObservableProperty]
+    public partial string CloningSource { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial string ProgressText { get; set; } = string.Empty;
+    public partial string CloningTarget { get; set; } = string.Empty;
 
     [ObservableProperty]
-    public partial double ProgressPercent { get; set; }
+    public partial string ElapsedText { get; set; } = "0:00";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasCloneError))]
     public partial string? CloneError { get; set; }
-
-    public bool HasCloneError => CloneError is not null;
 
     /// <summary>The URL that will be cloned, from the selected repository or the URL tab.</summary>
     public string? SourceUrl => SelectedTab == RepositoriesTab
@@ -138,7 +157,7 @@ public sealed partial class CloneViewModel : ObservableObject
         }
     }
 
-    public bool CanClone => !IsCloning && TargetPath is not null && CloneService.ValidateTarget(TargetPath) is null;
+    public bool CanClone => IsForm && TargetPath is not null && CloneService.ValidateTarget(TargetPath) is null;
 
     /// <summary>Call when the dialog opens.</summary>
     public async Task LoadAsync()
@@ -205,22 +224,39 @@ public sealed partial class CloneViewModel : ObservableObject
             return;
         }
 
-        IsCloning = true;
+        CloningName = CloneService.FolderNameFromUrl(url);
+        CloningSource = SelectedTab == RepositoriesTab && SelectedRepository is { } picked
+            ? $"{picked.Repository.Owner}/{picked.Name}  ·  {(picked.IsPrivate ? "private" : "public")}"
+            : url;
+        CloningTarget = target;
+
+        var tracker = new CloneStageTracker();
+        Stages.Clear();
+        foreach (var stage in tracker.Stages)
+        {
+            Stages.Add(new CloneStageViewModel(stage.DisplayName));
+        }
+
         CloneError = null;
-        ProgressText = "Starting…";
-        ProgressPercent = 0;
+        Mode = CloneMode.Cloning;
         _cloneCancellation = new CancellationTokenSource();
+        var elapsed = TrackElapsedAsync(_cloneCancellation.Token);
 
         // Progress<T> raises its callback on the UI thread, where bindings must be updated.
         var progress = new Progress<CloneProgress>(update =>
         {
-            ProgressText = update.Detail is null ? $"{update.Phase} {update.Percent}%" : $"{update.Phase} {update.Percent}%  ·  {update.Detail}";
-            ProgressPercent = update.Percent ?? 0;
+            if (tracker.Apply(update))
+            {
+                UpdateStages(tracker);
+            }
         });
 
         try
         {
             await _cloneService.CloneAsync(url, target, progress, _cloneCancellation.Token);
+
+            tracker.CompleteAll();
+            UpdateStages(tracker);
 
             _settingsStore.Settings.LastCloneFolder = DestinationFolder.Trim();
             _settingsStore.Save();
@@ -230,15 +266,20 @@ public sealed partial class CloneViewModel : ObservableObject
         }
         catch (OperationCanceledException)
         {
-            ProgressText = string.Empty;
+            // Cancel pressed: CloneService already removed the partial folder. Back to the form.
+            Mode = CloneMode.Form;
         }
-        catch (GitCommandException exception)
+        catch (Exception exception) when (exception is GitCommandException or InvalidOperationException or IOException)
         {
-            CloneError = DescribeCloneError(exception.Result.StandardError);
+            CloneError = exception is GitCommandException git
+                ? DescribeCloneError(git.Result.StandardError)
+                : exception.Message;
+            Mode = CloneMode.Failed;
         }
         finally
         {
-            IsCloning = false;
+            _cloneCancellation.Cancel(); // stops the elapsed timer
+            await elapsed;
             OnPropertyChanged(nameof(TargetPathText));
             OnPropertyChanged(nameof(CanClone));
         }
@@ -247,17 +288,61 @@ public sealed partial class CloneViewModel : ObservableObject
     [RelayCommand]
     private void Cancel()
     {
-        if (IsCloning)
+        if (Mode == CloneMode.Cloning)
         {
+            Mode = CloneMode.Stopping;
             _cloneCancellation?.Cancel();
             return;
         }
 
-        Finished?.Invoke(null);
+        if (Mode == CloneMode.Form)
+        {
+            Finished?.Invoke(null);
+        }
+    }
+
+    /// <summary>From the failed screen: back to the form with every choice kept.</summary>
+    [RelayCommand]
+    private void Back() => Mode = CloneMode.Form;
+
+    /// <summary>From the failed screen: run the same clone again.</summary>
+    [RelayCommand]
+    private Task TryAgainAsync()
+    {
+        Mode = CloneMode.Form;
+        return CloneAsync();
     }
 
     /// <summary>Stops a running clone without asking the dialog to close (it's already closing).</summary>
     public void StopCloning() => _cloneCancellation?.Cancel();
+
+    private void UpdateStages(CloneStageTracker tracker)
+    {
+        for (var i = 0; i < tracker.Stages.Count; i++)
+        {
+            Stages[i].Update(tracker.Stages[i]);
+        }
+    }
+
+    private async Task TrackElapsedAsync(CancellationToken cancellationToken)
+    {
+        var started = DateTime.Now;
+        ElapsedText = "0:00";
+
+        try
+        {
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                var elapsed = DateTime.Now - started;
+                ElapsedText = elapsed.TotalHours >= 1 ? elapsed.ToString(@"h\:mm\:ss") : elapsed.ToString(@"m\:ss");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Clone finished, failed or was cancelled.
+        }
+    }
 
     partial void OnFilterTextChanged(string value) => ApplyFilter();
 
