@@ -305,6 +305,22 @@
             </Panel>
           </Button>
 
+          <!-- Undo: click for the last move of the branch, right-click for earlier points -->
+          <Button Classes="toolbar-icon" Command="{Binding Undo.UndoLastCommand}" AutomationProperties.Name="Undo"
+                  ToolTip.ShowOnDisabled="True" ToolTip.Tip="{Binding Undo.ToolTip}">
+            <Button.ContextMenu>
+              <ContextMenu ItemsSource="{Binding Undo.Points}">
+                <ContextMenu.Styles>
+                  <Style Selector="MenuItem" x:DataType="vm:UndoPointItemViewModel">
+                    <Setter Property="Header" Value="{Binding Text}" />
+                    <Setter Property="Command" Value="{Binding UndoCommand}" />
+                  </Style>
+                </ContextMenu.Styles>
+              </ContextMenu>
+            </Button.ContextMenu>
+            <mi:MaterialIcon Kind="UndoVariant" Width="20" Height="20" />
+          </Button>
+
           <Button Classes="toolbar-icon" Width="NaN" Padding="12,0" Command="{Binding Sync.PushCommand}"
                   IsVisible="{Binding Sync.NeedsPublish}" ToolTip.Tip="{Binding Sync.PushToolTip}">
             <StackPanel Orientation="Horizontal" Spacing="6">

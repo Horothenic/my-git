@@ -20,7 +20,8 @@ public sealed record NameDialogOptions(
     string? CheckBoxText = null,
     bool CheckBoxDefault = false,
     string? MessagePlaceholder = null,
-    string? SecondCheckBoxText = null);
+    string? SecondCheckBoxText = null,
+    bool AllowEmpty = false);
 
 /// <summary>What the user entered.</summary>
 public sealed record NameDialogResult(string Name, string? Message, bool IsChecked, bool IsSecondChecked);

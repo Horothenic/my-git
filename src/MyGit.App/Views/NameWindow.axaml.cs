@@ -55,10 +55,11 @@ public sealed partial class NameWindow : Window
         {
             if (await ValidateAsync())
             {
-                Result = new NameDialogResult(NameBox.Text!.Trim(), MessageBox.Text, Option.IsChecked == true, SecondOption.IsChecked == true);
+                Result = new NameDialogResult((NameBox.Text ?? string.Empty).Trim(), MessageBox.Text, Option.IsChecked == true, SecondOption.IsChecked == true);
                 Close();
             }
         };
+        ConfirmButton.IsEnabled = options.AllowEmpty;
         Opened += (_, _) => NameBox.Focus();
     }
 
@@ -72,8 +73,8 @@ public sealed partial class NameWindow : Window
         if (name.Length == 0)
         {
             ErrorText.IsVisible = false;
-            ConfirmButton.IsEnabled = false;
-            return false;
+            ConfirmButton.IsEnabled = _options.AllowEmpty;
+            return _options.AllowEmpty;
         }
 
         var problem = await _options.Validate(name);

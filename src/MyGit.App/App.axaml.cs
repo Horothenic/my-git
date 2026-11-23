@@ -67,10 +67,11 @@ public sealed class App : Application
                 new FolderPicker(window),
                 dialogs,
                 new AccountViewModel(accounts, dialogs, shell),
-                new ChangesViewModel(changesService, new PartialChangesService(git, changesService, diffService), commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell),
+                new ChangesViewModel(changesService, new PartialChangesService(git, changesService, diffService), new Core.Stashes.StashService(git), commitService, diffService, hiddenFiles, repositoryService, settingsStore, dialogs, shell),
                 new SyncViewModel(new SyncService(git), dialogs),
-                new HistoryViewModel(historyService, git, diffService, dialogs, shell),
-                new BranchesViewModel(new BranchService(git), historyService, dialogs));
+                new HistoryViewModel(historyService, new CommitActionsService(git), git, diffService, dialogs, shell),
+                new BranchesViewModel(new BranchService(git), historyService, dialogs),
+                new UndoViewModel(new MyGit.Core.Undo.UndoService(git), dialogs));
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;

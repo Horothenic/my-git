@@ -19,4 +19,7 @@ public interface IDialogService
 
     /// <summary>Asks for a name (branch, tag). Returns null when cancelled.</summary>
     Task<NameDialogResult?> AskNameAsync(NameDialogOptions options);
+
+    /// <summary>Asks how far to reset (soft / mixed / hard). Returns null when cancelled.</summary>
+    Task<MyGit.Core.History.ResetMode?> AskResetAsync(string branch, string shortSha, int commitsUndone);
 }

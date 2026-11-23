@@ -27,11 +27,19 @@ public sealed partial class HistoryView : UserControl
             var hasTag = _menuCommit?.HasTag == true;
             BranchFromTagItem.IsVisible = hasTag;
             BranchFromTagItem.Header = hasTag ? $"Create branch from tag {_menuCommit!.FirstTag}…" : "Create branch from tag…";
+
+            var branch = ViewModel?.CurrentBranch;
+            CherryPickItem.Header = branch is null ? "Cherry-pick onto the current commit" : $"Cherry-pick onto {branch}";
+            ResetItem.Header = branch is null ? "Reset to here… (switch to a branch first)" : $"Reset {branch} to here…";
+            ResetItem.IsEnabled = branch is not null;
         };
 
         CreateBranchItem.Click += (_, _) => WithCommit((vm, commit) => vm.CreateBranchAsync(commit, fromTag: false));
         BranchFromTagItem.Click += (_, _) => WithCommit((vm, commit) => vm.CreateBranchAsync(commit, fromTag: true));
         CreateTagItem.Click += (_, _) => WithCommit((vm, commit) => vm.CreateTagAsync(commit));
+        CherryPickItem.Click += (_, _) => WithCommit((vm, commit) => vm.CherryPickAsync(commit));
+        RevertItem.Click += (_, _) => WithCommit((vm, commit) => vm.RevertAsync(commit));
+        ResetItem.Click += (_, _) => WithCommit((vm, commit) => vm.ResetAsync(commit));
         CheckoutItem.Click += (_, _) => WithCommit((vm, commit) => vm.CheckoutAsync(commit));
         CopyShaItem.Click += (_, _) => WithCommit((vm, commit) => vm.CopyShaAsync(commit));
         CopyMessageItem.Click += (_, _) => WithCommit((vm, commit) => vm.CopyMessageAsync(commit));

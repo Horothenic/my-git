@@ -17,6 +17,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 {
     private readonly ChangesService _changes;
     private readonly PartialChangesService _partial;
+    private readonly Core.Stashes.StashService _stashes;
     private readonly CommitService _commits;
     private readonly HiddenFilesStore _hidden;
     private readonly Core.Repositories.RepositoryService _repositories;
@@ -40,6 +41,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     public ChangesViewModel(
         ChangesService changes,
         PartialChangesService partial,
+        Core.Stashes.StashService stashes,
         CommitService commits,
         Core.Diffs.DiffService diffs,
         HiddenFilesStore hidden,
@@ -50,6 +52,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     {
         _changes = changes;
         _partial = partial;
+        _stashes = stashes;
         _commits = commits;
         _hidden = hidden;
         _repositories = repositories;
@@ -78,6 +81,29 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     public FileTree Staged { get; } = new();
 
     public DiffViewModel Diff { get; }
+
+    // ---- Stashes ----
+
+    public System.Collections.ObjectModel.ObservableCollection<StashItemViewModel> Stashes { get; } = [];
+
+    public int StashCount => Stashes.Count;
+
+    public bool HasStashes => Stashes.Count > 0;
+
+    [ObservableProperty]
+    public partial bool IsStashesExpanded { get; set; } = true;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedStash))]
+    public partial StashItemViewModel? SelectedStash { get; set; }
+
+    public bool HasSelectedStash => SelectedStash is not null;
+
+    /// <summary>Files of the selected stash.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<FileChange> StashFiles { get; } = [];
+
+    [ObservableProperty]
+    public partial FileChange? SelectedStashFile { get; set; }
 
     /// <summary>Branch name for the commit button, set by the main window.</summary>
     [ObservableProperty]
@@ -231,6 +257,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
                 UpdateTrees();
                 await RefreshDiffAsync();
+                await RefreshStashesAsync(repository);
             }
             while (_refreshPending);
         }
@@ -392,6 +419,126 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         await RefreshAsync();
     }
 
+    /// <summary>The Unstaged header's Stash… button; with files selected, offers to stash only those.</summary>
+    public async Task StashAsync(IReadOnlyCollection<FileTreeNodeViewModel> selection)
+    {
+        if (RepositoryPath is not { } repository || _status.Unstaged.Count + _status.Staged.Count == 0)
+        {
+            return;
+        }
+
+        var selectedPaths = PathsOf(selection);
+        var answer = await _dialogs.AskNameAsync(new NameDialogOptions(
+            "Stash changes",
+            "Puts your uncommitted changes aside (new files too), so the working tree is clean. Bring them back from Stashes.",
+            $"WIP on {BranchName}",
+            "Stash",
+            _ => Task.FromResult<string?>(null),
+            CheckBoxText: selectedPaths.Count > 0 ? $"Only the {selectedPaths.Count} selected file(s)" : null,
+            AllowEmpty: true));
+
+        if (answer is null)
+        {
+            return;
+        }
+
+        var message = answer.Name.Length > 0 ? answer.Name : null;
+        await RunAsync(async path =>
+        {
+            if (!await _stashes.PushAsync(path, message, answer.IsChecked ? selectedPaths : null))
+            {
+                MessageRaised?.Invoke("There was nothing to stash.");
+            }
+        });
+    }
+
+    public async Task ApplyStashAsync(StashItemViewModel item, bool remove)
+    {
+        if (RepositoryPath is null)
+        {
+            return;
+        }
+
+        await RunAsync(async path =>
+        {
+            switch (await _stashes.ApplyAsync(path, item.Stash, remove))
+            {
+                case Core.Stashes.StashApplyOutcome.Blocked:
+                    MessageRaised?.Invoke("Your current changes are in the way of that stash. Commit or stash them first. Nothing was changed.");
+                    break;
+                case Core.Stashes.StashApplyOutcome.Conflict:
+                    MessageRaised?.Invoke("The stash was applied, but some files have conflicts to resolve. The stash is kept, just in case. " +
+                                          "A conflict screen comes in a later version.");
+                    break;
+            }
+        });
+    }
+
+    public async Task DropStashAsync(StashItemViewModel item)
+    {
+        if (RepositoryPath is null ||
+            !await _dialogs.ConfirmAsync($"Delete the stash “{item.Message}”?", "Its changes will be gone. This can't be undone.", "Delete stash"))
+        {
+            return;
+        }
+
+        await RunAsync(path => _stashes.DropAsync(path, item.Stash));
+    }
+
+    partial void OnSelectedStashChanged(StashItemViewModel? value) => _ = LoadStashFilesAsync(value);
+
+    partial void OnSelectedStashFileChanged(FileChange? value)
+    {
+        if (RepositoryPath is { } repository && SelectedStash is { } stash && value is not null)
+        {
+            _ = Diff.ShowCommitFileAsync(repository, value, token => _stashes.GetFileDiffAsync(repository, stash.Stash, value, token));
+        }
+    }
+
+    private async Task LoadStashFilesAsync(StashItemViewModel? stash)
+    {
+        StashFiles.Clear();
+
+        if (stash is null || RepositoryPath is not { } repository)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var file in await _stashes.GetFilesAsync(repository, stash.Stash))
+            {
+                StashFiles.Add(file);
+            }
+        }
+        catch (GitCommandException exception)
+        {
+            MessageRaised?.Invoke(exception.Message);
+        }
+    }
+
+    private async Task RefreshStashesAsync(string repository)
+    {
+        var list = await _stashes.ListAsync(repository);
+
+        // Only rebuild when something changed, so the selection survives auto-refresh.
+        if (list.Select(s => s.Sha).SequenceEqual(Stashes.Select(s => s.Stash.Sha)))
+        {
+            return;
+        }
+
+        var selectedSha = SelectedStash?.Stash.Sha;
+        Stashes.Clear();
+        foreach (var stash in list)
+        {
+            Stashes.Add(new StashItemViewModel(stash, this));
+        }
+
+        SelectedStash = Stashes.FirstOrDefault(s => s.Stash.Sha == selectedSha);
+        OnPropertyChanged(nameof(StashCount));
+        OnPropertyChanged(nameof(HasStashes));
+    }
+
     public void OpenInEditor(FileTreeNodeViewModel node) => _shell.OpenFile(FullPath(node));
 
     public void ShowInExplorer(FileTreeNodeViewModel node) => _shell.ShowInExplorer(FullPath(node));
@@ -521,7 +668,8 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     /// <summary>Keeps the diff in sync after a refresh: reload it, or clear it if the file left its list.</summary>
     private Task RefreshDiffAsync()
     {
-        if (Diff.Change is not { } shown)
+        // Nothing shown, or a stash file (read-only): a working-tree refresh doesn't affect it.
+        if (Diff.Change is not { } shown || Diff.IsReadOnly)
         {
             return Task.CompletedTask;
         }
