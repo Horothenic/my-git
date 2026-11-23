@@ -32,6 +32,15 @@ dotnet test MyGit.slnx
 |---|---|
 | `src/MyGit.App` | Avalonia UI: `Views` (XAML), `ViewModels`, `Styles`, `Services` |
 | `src/MyGit.Core` | Git and repository logic, no UI code. All git writes go through `GitRunner`. |
+| `src/MyGit.GitHub` | GitHub sign-in (device flow), the account and token, repository listing (Octokit) |
 | `tests/MyGit.Core.Tests` | xUnit tests that run against real temporary git repositories |
 
 App data lives in `%APPDATA%\MyGit` (`repositories.json`, `settings.json`). Nothing is written inside your repositories.
+
+## GitHub account
+
+My Git signs in with one GitHub account through GitHub's device flow (the "My Git" OAuth App).
+
+- The token is stored in Windows Credential Manager as `MyGit:github.com`, never in a file.
+- Git commands that My Git runs get the token through `GIT_CONFIG_*` environment variables, so it never appears in a command line or in your git config. Git you run in a terminal keeps using its own credentials.
+- Signing out deletes the token.

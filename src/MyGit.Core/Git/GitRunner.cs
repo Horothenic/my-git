@@ -9,9 +9,14 @@ namespace MyGit.Core.Git;
 public sealed class GitRunner : IGitRunner
 {
     private readonly string _gitExecutable;
+    private readonly IGitEnvironmentProvider? _environmentProvider;
 
-    public GitRunner(string gitExecutable = "git")
+    /// <param name="environmentProvider">
+    /// Adds environment variables to every git command, for example GitHub authentication.
+    /// </param>
+    public GitRunner(IGitEnvironmentProvider? environmentProvider = null, string gitExecutable = "git")
     {
+        _environmentProvider = environmentProvider;
         _gitExecutable = gitExecutable;
     }
 
@@ -19,7 +24,8 @@ public sealed class GitRunner : IGitRunner
         string workingDirectory,
         IReadOnlyList<string> arguments,
         IReadOnlyDictionary<string, string>? environment = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<string>? onProgress = null)
     {
         var startInfo = CreateStartInfo(workingDirectory, arguments, environment);
 
@@ -28,7 +34,9 @@ public sealed class GitRunner : IGitRunner
 
         // Read both streams at the same time so a full buffer on one never blocks the other.
         var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        var errorTask = onProgress is null
+            ? process.StandardError.ReadToEndAsync(cancellationToken)
+            : ReadLinesAsync(process.StandardError, onProgress, cancellationToken);
 
         try
         {
@@ -47,9 +55,10 @@ public sealed class GitRunner : IGitRunner
         string workingDirectory,
         IReadOnlyList<string> arguments,
         IReadOnlyDictionary<string, string>? environment = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<string>? onProgress = null)
     {
-        var result = await RunAsync(workingDirectory, arguments, environment, cancellationToken);
+        var result = await RunAsync(workingDirectory, arguments, environment, cancellationToken, onProgress);
 
         if (!result.Succeeded)
         {
@@ -87,15 +96,67 @@ public sealed class GitRunner : IGitRunner
         // Never let git wait for input on a console nobody can see.
         startInfo.Environment["GIT_TERMINAL_PROMPT"] = "0";
 
-        if (environment is not null)
+        AddEnvironment(startInfo, _environmentProvider?.GetEnvironment());
+        AddEnvironment(startInfo, environment);
+
+        return startInfo;
+    }
+
+    private static void AddEnvironment(ProcessStartInfo startInfo, IReadOnlyDictionary<string, string>? environment)
+    {
+        if (environment is null)
         {
-            foreach (var (key, value) in environment)
+            return;
+        }
+
+        foreach (var (key, value) in environment)
+        {
+            startInfo.Environment[key] = value;
+        }
+    }
+
+    /// <summary>
+    /// Reads a stream and reports each line as it arrives. git redraws progress lines
+    /// with '\r', so both '\r' and '\n' end a line. Returns everything that was read.
+    /// </summary>
+    private static async Task<string> ReadLinesAsync(
+        StreamReader reader,
+        Action<string> onLine,
+        CancellationToken cancellationToken)
+    {
+        var all = new StringBuilder();
+        var line = new StringBuilder();
+        var buffer = new char[1024];
+
+        int read;
+        while ((read = await reader.ReadAsync(buffer, cancellationToken)) > 0)
+        {
+            for (var i = 0; i < read; i++)
             {
-                startInfo.Environment[key] = value;
+                var character = buffer[i];
+                all.Append(character);
+
+                if (character is '\r' or '\n')
+                {
+                    if (line.Length > 0)
+                    {
+                        onLine(line.ToString());
+                        line.Clear();
+                    }
+                }
+                else
+                {
+                    line.Append(character);
+                }
             }
         }
 
-        return startInfo;
+        if (line.Length > 0)
+        {
+            onLine(line.ToString());
+        }
+
+        return all.ToString();
     }
 
     private static void TryKill(Process process)

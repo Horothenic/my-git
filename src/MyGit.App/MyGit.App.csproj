@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- My Git is a Windows app (Credential Manager, Explorer integration). -->
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
     <AssemblyName>MyGit</AssemblyName>
     <RootNamespace>MyGit.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -17,9 +19,12 @@
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <!-- Loaded by Windows directly from disk for the title bar (see TitleBarIcon.cs). -->
+    <Content Include="Assets\my-git-outline-*.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MyGit.Core\MyGit.Core.csproj" />
+    <ProjectReference Include="..\MyGit.GitHub\MyGit.GitHub.csproj" />
   </ItemGroup>
 
   <!--
@@ -35,15 +40,8 @@
     <ItemGroup>
       <LocalAppFiles Include="$(OutDir)**\*" />
     </ItemGroup>
-    <Copy SourceFiles="@(LocalAppFiles)"
-          DestinationFiles="@(LocalAppFiles->'$(LocalAppFolder)%(RecursiveDir)%(Filename)%(Extension)')"
-          SkipUnchangedFiles="true"
-          Retries="2"
-          RetryDelayMilliseconds="500"
-          ContinueOnError="WarnAndContinue" />
-    <Message Condition="'$(MSBuildLastTaskResult)' == 'true'" Importance="high"
-             Text="My Git copied to $([System.IO.Path]::GetFullPath('$(LocalAppFolder)'))MyGit.exe" />
-    <Warning Condition="'$(MSBuildLastTaskResult)' != 'true'"
-             Text="app\ was not updated because My Git is running. Close it and build again." />
+    <Copy SourceFiles="@(LocalAppFiles)" DestinationFiles="@(LocalAppFiles->'$(LocalAppFolder)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Retries="2" RetryDelayMilliseconds="500" ContinueOnError="WarnAndContinue" />
+    <Message Condition="'$(MSBuildLastTaskResult)' == 'true'" Importance="high" Text="My Git copied to $([System.IO.Path]::GetFullPath('$(LocalAppFolder)'))MyGit.exe" />
+    <Warning Condition="'$(MSBuildLastTaskResult)' != 'true'" Text="app\ was not updated because My Git is running. Close it and build again." />
   </Target>
 </Project>

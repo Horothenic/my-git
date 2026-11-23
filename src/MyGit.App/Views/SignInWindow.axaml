@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MyGit.App.ViewModels"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        x:Class="MyGit.App.Views.SignInWindow"
+        x:DataType="vm:SignInViewModel"
+        Title="Sign in to GitHub"
+        Icon="/Assets/my-git.ico"
+        Width="420" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="28,24" Spacing="12" HorizontalAlignment="Stretch">
+    <mi:MaterialIcon Kind="Github" Width="32" Height="32" HorizontalAlignment="Center" />
+    <TextBlock Classes="heading" Text="Sign in to GitHub" HorizontalAlignment="Center" />
+    <TextBlock Classes="caption" FontSize="13" TextWrapping="Wrap" TextAlignment="Center"
+               IsVisible="{Binding HasCode}"
+               Text="Enter this code on GitHub. It's already copied, and your browser opens automatically." />
+
+    <!-- The code -->
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" IsVisible="{Binding HasCode}">
+      <Border Background="{DynamicResource PanelBackgroundBrush}"
+              BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+              CornerRadius="6" Padding="16,8">
+        <SelectableTextBlock Text="{Binding UserCode}" FontFamily="Cascadia Mono, Consolas, monospace"
+                             FontSize="24" LetterSpacing="3" />
+      </Border>
+      <Button Command="{Binding CopyCodeCommand}" VerticalAlignment="Center" ToolTip.Tip="Copy code">
+        <mi:MaterialIcon Kind="ContentCopy" Width="16" Height="16" />
+      </Button>
+    </StackPanel>
+
+    <Button HorizontalAlignment="Center" Command="{Binding OpenBrowserCommand}" IsVisible="{Binding HasCode}">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <mi:MaterialIcon Kind="OpenInNew" Width="14" Height="14" />
+        <TextBlock Text="{Binding VerificationUrl, StringFormat='Open {0}'}" />
+      </StackPanel>
+    </Button>
+
+    <TextBlock Classes="caption" FontSize="12" HorizontalAlignment="Center"
+               Text="{Binding Status}" IsVisible="{Binding !HasError}" />
+
+    <TextBlock Foreground="{DynamicResource DangerBrush}" TextWrapping="Wrap" TextAlignment="Center"
+               Text="{Binding Error}" IsVisible="{Binding HasError}" />
+
+    <Button HorizontalAlignment="Center" Command="{Binding CancelCommand}" Content="Cancel" />
+  </StackPanel>
+</Window>

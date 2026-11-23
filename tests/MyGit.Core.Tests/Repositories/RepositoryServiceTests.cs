@@ -41,6 +41,26 @@ public sealed class RepositoryServiceTests
         Assert.Null(await _service.FindRootAsync(missing));
     }
 
+    [Theory]
+    [InlineData("https://github.com/Horothenic/my-git.git")]
+    [InlineData("https://github.com/horothenic/My-Git/")]
+    [InlineData("git@github.com:Horothenic/my-git.git")]
+    public void NormalizeRemoteUrl_TreatsSpellingsAsEqual(string url)
+    {
+        Assert.Equal("github.com/horothenic/my-git", RepositoryService.NormalizeRemoteUrl(url));
+    }
+
+    [Fact]
+    public async Task GetRemoteUrlAsync_ReturnsOriginOrNull()
+    {
+        using var repository = await TempRepository.CreateAsync();
+
+        Assert.Null(await _service.GetRemoteUrlAsync(repository.Path));
+
+        await repository.RunAsync("remote", "add", "origin", "https://github.com/Horothenic/my-git.git");
+        Assert.Equal("https://github.com/Horothenic/my-git.git", await _service.GetRemoteUrlAsync(repository.Path));
+    }
+
     [Fact]
     public async Task GetCurrentBranchAsync_ReturnsBranchName()
     {

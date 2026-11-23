@@ -18,6 +18,7 @@
       <SolidColorBrush x:Key="AccentBrush" Color="#4493F8" />
       <SolidColorBrush x:Key="AccentSubtleBrush" Color="#1B3354" />
       <SolidColorBrush x:Key="DangerBrush" Color="#F47067" />
+      <SolidColorBrush x:Key="SuccessBrush" Color="#57AB5A" />
       <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#3D2E00" />
       <SolidColorBrush x:Key="WarningTextBrush" Color="#E3B341" />
       <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#4493F8" />
@@ -36,6 +37,7 @@
       <SolidColorBrush x:Key="AccentBrush" Color="#0969DA" />
       <SolidColorBrush x:Key="AccentSubtleBrush" Color="#DDF4FF" />
       <SolidColorBrush x:Key="DangerBrush" Color="#CF222E" />
+      <SolidColorBrush x:Key="SuccessBrush" Color="#1A7F37" />
       <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#FFF8C5" />
       <SolidColorBrush x:Key="WarningTextBrush" Color="#7D4E00" />
       <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#0969DA" />

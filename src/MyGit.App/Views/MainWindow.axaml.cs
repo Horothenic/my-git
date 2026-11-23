@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using MyGit.App.Services;
 using MyGit.App.ViewModels;
 
 namespace MyGit.App.Views;
@@ -8,6 +9,7 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        TitleBarIcon.Attach(this);
 
         // Pick up branch switches made outside the app (terminal, IDE) when the user comes back.
         Activated += (_, _) => ViewModel?.RefreshCommand.Execute(null);
@@ -22,6 +24,8 @@ public sealed partial class MainWindow : Window
         if (ViewModel is not null)
         {
             ViewModel.RepositoryPicker.CloseRequested += () => RepositoryButton.Flyout?.Hide();
+            ViewModel.DialogOpening += () => RepositoryButton.Flyout?.Hide();
+            ViewModel.Account.DialogOpening += () => AccountButton.Flyout?.Hide();
         }
     }
 }
