@@ -23,7 +23,7 @@
         <!-- Right side: theme + account -->
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" Margin="0,0,12,0">
           <Button Classes="toolbar-icon" BorderThickness="0"
-                  Command="{Binding ToggleThemeCommand}"
+                  Command="{Binding ToggleThemeCommand}" AutomationProperties.Name="Switch theme"
                   ToolTip.Tip="Switch dark / light theme">
             <mi:MaterialIcon Kind="ThemeLightDark" Width="18" Height="18" />
           </Button>
@@ -313,17 +313,45 @@
       </StackPanel>
 
       <!-- Repository open: main tabs -->
-      <TabControl IsVisible="{Binding HasRepository}" Padding="0">
-        <TabItem Header="Changes">
+      <!-- Full-width tabs on a toolbar-colored strip (the selected tab takes the content's color). -->
+      <TabControl Classes="main-tabs" IsVisible="{Binding HasRepository}" Padding="0">
+        <TabControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Rows="1" Background="{DynamicResource ToolbarBackgroundBrush}" />
+          </ItemsPanelTemplate>
+        </TabControl.ItemsPanel>
+
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <mi:MaterialIcon Kind="FileDocumentEditOutline" Width="16" Height="16" />
+              <TextBlock Text="Changes" VerticalAlignment="Center" />
+              <Border Classes="tab-count" IsVisible="{Binding Changes.HasChangedFiles}">
+                <TextBlock Text="{Binding Changes.ChangedFileCount}" />
+              </Border>
+            </StackPanel>
+          </TabItem.Header>
           <views:ChangesView DataContext="{Binding Changes}" />
         </TabItem>
-        <TabItem Header="History">
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <mi:MaterialIcon Kind="History" Width="16" Height="16" />
+              <TextBlock Text="History" VerticalAlignment="Center" />
+            </StackPanel>
+          </TabItem.Header>
           <Border Classes="placeholder">
             <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
                        Text="Commit graph, tags and branch-from-commit arrive in Phase 5." />
           </Border>
         </TabItem>
-        <TabItem Header="Stacks">
+        <TabItem>
+          <TabItem.Header>
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <mi:MaterialIcon Kind="LayersOutline" Width="16" Height="16" />
+              <TextBlock Text="Stacks" VerticalAlignment="Center" />
+            </StackPanel>
+          </TabItem.Header>
           <Border Classes="placeholder">
             <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
                        Text="Stacked pull requests arrive in Phases 10 and 11." />
