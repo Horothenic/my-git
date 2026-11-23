@@ -41,6 +41,18 @@ public sealed class RepositoryStoreTests : IDisposable
     }
 
     [Fact]
+    public void Load_StartsEmptyAndKeepsBackup_WhenFileIsCorrupted()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+        File.WriteAllText(FilePath, """[{ "Path": "C:\Users\bad-escape" }]""");
+
+        var store = new RepositoryStore(FilePath);
+
+        Assert.Empty(store.Repositories);
+        Assert.True(File.Exists(store.BackupFilePath));
+    }
+
+    [Fact]
     public void FromPath_UsesFolderNameAsDisplayName()
     {
         Assert.Equal("my-git", RepositoryInfo.FromPath(@"C:\code\my-git\").Name);

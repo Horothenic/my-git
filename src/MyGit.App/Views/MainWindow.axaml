@@ -1,0 +1,232 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MyGit.App.ViewModels"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        x:Class="MyGit.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="My Git"
+        Width="1280" Height="800"
+        MinWidth="820" MinHeight="500"
+        WindowStartupLocation="CenterScreen">
+
+  <DockPanel>
+
+    <!-- ===== Toolbar ===== -->
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource ToolbarBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
+            BorderThickness="0,0,0,1">
+      <DockPanel>
+
+        <!-- Right side: theme + account -->
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" Margin="0,0,12,0">
+          <Button Classes="toolbar-icon" BorderThickness="0"
+                  Command="{Binding ToggleThemeCommand}"
+                  ToolTip.Tip="Switch dark / light theme">
+            <mi:MaterialIcon Kind="ThemeLightDark" Width="18" Height="18" />
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                      ToolTip.Tip="GitHub sign-in arrives in Phase 2">
+            <mi:MaterialIcon Kind="AccountCircleOutline" Width="20" Height="20"
+                             Foreground="{DynamicResource TextSecondaryBrush}" />
+            <TextBlock Text="Not signed in" VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextSecondaryBrush}" />
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Left side: Repository, Branch, Fetch, Pull, Push -->
+        <StackPanel Orientation="Horizontal">
+
+          <!-- Repository dropdown -->
+          <Button x:Name="RepositoryButton" Classes="toolbar-dropdown">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+              <mi:MaterialIcon Grid.Column="0" Kind="SourceRepository" Width="18" Height="18" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="caption" Text="Repository" />
+                <TextBlock Classes="title" Text="{Binding RepositoryName}" />
+              </StackPanel>
+              <mi:MaterialIcon Grid.Column="2" Kind="ChevronDown" Width="16" Height="16" />
+            </Grid>
+
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <StackPanel x:DataType="vm:MainWindowViewModel" Width="340" Spacing="8">
+                  <TextBox PlaceholderText="Filter repositories"
+                           Text="{Binding RepositoryPicker.FilterText}" />
+
+                  <TextBlock Classes="caption" Margin="4,4"
+                             IsVisible="{Binding !RepositoryPicker.HasRepositories}"
+                             Text="No repositories yet. Add a local folder to start." />
+
+                  <ScrollViewer MaxHeight="360">
+                    <ItemsControl ItemsSource="{Binding RepositoryPicker.Items}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RepositoryItemViewModel">
+                          <Button Classes="list-row"
+                                  Classes.current="{Binding IsCurrent}"
+                                  Command="{Binding OpenCommand}"
+                                  ToolTip.Tip="{Binding Path}">
+                            <Button.ContextMenu>
+                              <ContextMenu>
+                                <MenuItem Header="Show in Explorer" Command="{Binding ShowInExplorerCommand}" />
+                                <MenuItem Header="Remove from list" Command="{Binding RemoveCommand}" />
+                              </ContextMenu>
+                            </Button.ContextMenu>
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                              <Panel Grid.Column="0" VerticalAlignment="Center">
+                                <mi:MaterialIcon Kind="Check" Width="16" Height="16"
+                                                 Foreground="{DynamicResource AccentBrush}"
+                                                 IsVisible="{Binding IsCurrent}" />
+                                <mi:MaterialIcon Kind="FolderOutline" Width="16" Height="16"
+                                                 IsVisible="{Binding !IsCurrent}" />
+                              </Panel>
+                              <StackPanel Grid.Column="1">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                  <TextBlock Text="{Binding Name}" />
+                                  <TextBlock Text="(missing)" Foreground="{DynamicResource DangerBrush}"
+                                             IsVisible="{Binding IsMissing}" />
+                                </StackPanel>
+                                <TextBlock Classes="caption" Text="{Binding Path}" TextTrimming="PrefixCharacterEllipsis" />
+                              </StackPanel>
+                            </Grid>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                    <Button Grid.Column="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Command="{Binding RepositoryPicker.AddLocalCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <mi:MaterialIcon Kind="FolderPlusOutline" Width="16" Height="16" />
+                        <TextBlock Text="Add local" />
+                      </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            IsEnabled="False"
+                            ToolTip.ShowOnDisabled="True"
+                            ToolTip.Tip="Cloning arrives in Phase 2">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <mi:MaterialIcon Kind="CloudDownloadOutline" Width="16" Height="16" />
+                        <TextBlock Text="Clone" />
+                      </StackPanel>
+                    </Button>
+                  </Grid>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <!-- Branch dropdown (switching arrives in Phase 5) -->
+          <Button Classes="toolbar-dropdown" IsEnabled="{Binding HasRepository}">
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+              <mi:MaterialIcon Grid.Column="0" Kind="SourceBranch" Width="18" Height="18" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="caption" Text="Branch" />
+                <TextBlock Classes="title" Text="{Binding BranchName}" />
+              </StackPanel>
+              <mi:MaterialIcon Grid.Column="2" Kind="ChevronDown" Width="16" Height="16" />
+            </Grid>
+            <Button.Flyout>
+              <Flyout Placement="BottomEdgeAlignedLeft">
+                <TextBlock Classes="caption" Width="260" TextWrapping="Wrap"
+                           Text="Switching, creating and fast-forwarding branches arrives in Phase 5." />
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <!-- Fetch / Pull / Push (enabled in Phase 4) -->
+          <Button Classes="toolbar-icon" IsEnabled="False"
+                  ToolTip.ShowOnDisabled="True" ToolTip.Tip="Fetch from origin (Phase 4)">
+            <mi:MaterialIcon Kind="Refresh" Width="20" Height="20" />
+          </Button>
+
+          <Button Classes="toolbar-icon" IsEnabled="False"
+                  ToolTip.ShowOnDisabled="True" ToolTip.Tip="Pull (Phase 4)">
+            <Panel>
+              <mi:MaterialIcon Kind="ArrowDown" Width="20" Height="20" />
+              <Border Classes="badge" IsVisible="{Binding HasCommitsToPull}"
+                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-10,-14,0">
+                <TextBlock Text="{Binding CommitsToPull}" />
+              </Border>
+            </Panel>
+          </Button>
+
+          <Button Classes="toolbar-icon" IsEnabled="False"
+                  ToolTip.ShowOnDisabled="True" ToolTip.Tip="Push (Phase 4)">
+            <Panel>
+              <mi:MaterialIcon Kind="ArrowUp" Width="20" Height="20" />
+              <Border Classes="badge" IsVisible="{Binding HasCommitsToPush}"
+                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-10,-14,0">
+                <TextBlock Text="{Binding CommitsToPush}" />
+              </Border>
+            </Panel>
+          </Button>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ===== Message bar ===== -->
+    <Border DockPanel.Dock="Top"
+            IsVisible="{Binding HasMessage}"
+            Background="{DynamicResource WarningBackgroundBrush}"
+            Padding="12,8">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Padding="4" Background="Transparent"
+                Command="{Binding DismissMessageCommand}" ToolTip.Tip="Dismiss">
+          <mi:MaterialIcon Kind="Close" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
+        </Button>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <mi:MaterialIcon Kind="AlertOutline" Width="16" Height="16" Foreground="{DynamicResource WarningTextBrush}" />
+          <TextBlock Text="{Binding Message}" Foreground="{DynamicResource WarningTextBrush}"
+                     TextWrapping="Wrap" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- ===== Content ===== -->
+    <Panel>
+
+      <!-- Empty state: no repository open -->
+      <StackPanel IsVisible="{Binding !HasRepository}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  Spacing="10" MaxWidth="380">
+        <mi:MaterialIcon Kind="SourceRepository" Width="44" Height="44"
+                         Foreground="{DynamicResource TextMutedBrush}" />
+        <TextBlock Classes="heading" Text="Open a repository" HorizontalAlignment="Center" />
+        <TextBlock Classes="caption" FontSize="13" TextWrapping="Wrap" TextAlignment="Center"
+                   Text="Pick a folder that's already a git repository. Cloning from GitHub arrives in Phase 2." />
+        <Button HorizontalAlignment="Center" Margin="0,6,0,0"
+                Command="{Binding RepositoryPicker.AddLocalCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <mi:MaterialIcon Kind="FolderPlusOutline" Width="16" Height="16" />
+            <TextBlock Text="Add local repository" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <!-- Repository open: main tabs -->
+      <TabControl IsVisible="{Binding HasRepository}" Padding="0">
+        <TabItem Header="Changes">
+          <Border Classes="placeholder">
+            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Text="Unstaged and staged trees, side-by-side diff and the commit box arrive in Phase 3." />
+          </Border>
+        </TabItem>
+        <TabItem Header="History">
+          <Border Classes="placeholder">
+            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Text="Commit graph, tags and branch-from-commit arrive in Phase 5." />
+          </Border>
+        </TabItem>
+        <TabItem Header="Stacks">
+          <Border Classes="placeholder">
+            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Text="Stacked pull requests arrive in Phases 10 and 11." />
+          </Border>
+        </TabItem>
+      </TabControl>
+    </Panel>
+  </DockPanel>
+</Window>

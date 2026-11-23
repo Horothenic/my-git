@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/MyGit.App/MyGit.App.csproj" />
     <Project Path="src/MyGit.Core/MyGit.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">

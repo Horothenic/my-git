@@ -61,14 +61,25 @@ public sealed class RepositoryStore
             return;
         }
 
-        var json = File.ReadAllText(_filePath);
-        var loaded = JsonSerializer.Deserialize<List<RepositoryInfo>>(json, JsonOptions);
-
-        if (loaded is not null)
+        try
         {
-            _repositories.AddRange(loaded);
+            var json = File.ReadAllText(_filePath);
+            var loaded = JsonSerializer.Deserialize<List<RepositoryInfo>>(json, JsonOptions);
+
+            if (loaded is not null)
+            {
+                _repositories.AddRange(loaded);
+            }
+        }
+        catch (JsonException)
+        {
+            // Keep the damaged file so the list can be recovered by hand, then start empty.
+            File.Copy(_filePath, BackupFilePath, overwrite: true);
         }
     }
+
+    /// <summary>Where a damaged repository list is copied before starting with an empty one.</summary>
+    public string BackupFilePath => _filePath + ".bak";
 
     private void Save()
     {
