@@ -64,6 +64,9 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     /// <summary>Raised with an error message for the main window's message bar.</summary>
     public event Action<string>? MessageRaised;
 
+    /// <summary>Raised when the repository changed on disk; the main window refreshes everything.</summary>
+    public event Func<Task>? ChangedOnDisk;
+
     /// <summary>Raised after a commit, so the main window can refresh branch info.</summary>
     public event Action? Committed;
 
@@ -182,7 +185,10 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         _hidden.MoveKey(repositoryPath, _hiddenKey);
 
         _watcher = new RepositoryWatcher(repositoryPath);
-        _watcher.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = RefreshAsync());
+        // Files changed on disk (an editor, Unity, or git in a terminal). The main window refreshes
+        // everything (branch, sync counts and these lists); without a listener, just the lists.
+        _watcher.Changed += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            _ = ChangedOnDisk is { } handler ? handler() : RefreshAsync());
 
         await RefreshAsync();
     }

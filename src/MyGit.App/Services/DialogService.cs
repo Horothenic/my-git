@@ -61,6 +61,13 @@ public sealed class DialogService : IDialogService
         return window.Confirmed;
     }
 
+    public async Task<int> ChooseAsync(string title, string message, IReadOnlyList<string> choices, int dangerIndex = -1)
+    {
+        var window = new ChoiceWindow(title, message, choices, dangerIndex);
+        await window.ShowDialog(_owner);
+        return window.Choice;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();

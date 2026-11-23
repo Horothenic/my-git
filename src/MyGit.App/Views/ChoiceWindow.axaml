@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="MyGit.App.Views.ChoiceWindow"
+        Icon="/Assets/my-git.ico"
+        Width="460" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="22,20" Spacing="10">
+    <TextBlock x:Name="TitleText" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" />
+    <TextBlock x:Name="MessageText" Classes="caption" FontSize="13" TextWrapping="Wrap" />
+    <!-- Buttons are added in code: the last one is focused first (usually Cancel). -->
+    <StackPanel x:Name="Buttons" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,8,0,0" />
+  </StackPanel>
+</Window>
