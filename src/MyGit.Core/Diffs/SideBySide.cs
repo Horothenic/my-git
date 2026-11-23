@@ -16,7 +16,16 @@ public enum SideBySideRowKind
 /// One row of the two-column diff. A side is null when that side has no line on this row
 /// (for example a pure addition has nothing on the left).
 /// </summary>
-public sealed record SideBySideRow(SideBySideRowKind Kind, DiffLine? Left, DiffLine? Right, int HunkIndex, string? HunkHeader = null);
+/// <param name="LeftIndex">Index of <paramref name="Left"/> in its hunk's lines (for picking lines to stage).</param>
+/// <param name="RightIndex">Index of <paramref name="Right"/> in its hunk's lines.</param>
+public sealed record SideBySideRow(
+    SideBySideRowKind Kind,
+    DiffLine? Left,
+    DiffLine? Right,
+    int HunkIndex,
+    string? HunkHeader = null,
+    int LeftIndex = -1,
+    int RightIndex = -1);
 
 /// <summary>
 /// Lays a <see cref="FileDiff"/> out in two columns, old on the left and new on the right.
@@ -33,15 +42,17 @@ public static class SideBySide
             var hunk = diff.Hunks[hunkIndex];
             rows.Add(new SideBySideRow(SideBySideRowKind.HunkHeader, null, null, hunkIndex, $"@@ line {hunk.NewStart} @@"));
 
-            var removed = new List<DiffLine>();
-            var added = new List<DiffLine>();
+            var removed = new List<(DiffLine Line, int Index)>();
+            var added = new List<(DiffLine Line, int Index)>();
 
-            foreach (var line in hunk.Lines)
+            for (var index = 0; index < hunk.Lines.Count; index++)
             {
+                var line = hunk.Lines[index];
+
                 if (line.Kind == DiffLineKind.Context)
                 {
                     FlushChanges();
-                    rows.Add(new SideBySideRow(SideBySideRowKind.Context, line, line, hunkIndex));
+                    rows.Add(new SideBySideRow(SideBySideRowKind.Context, line, line, hunkIndex, LeftIndex: index, RightIndex: index));
                 }
                 else if (line.Kind == DiffLineKind.Removed)
                 {
@@ -51,11 +62,11 @@ public static class SideBySide
                         FlushChanges();
                     }
 
-                    removed.Add(line);
+                    removed.Add((line, index));
                 }
                 else
                 {
-                    added.Add(line);
+                    added.Add((line, index));
                 }
             }
 
@@ -66,11 +77,16 @@ public static class SideBySide
                 var count = Math.Max(removed.Count, added.Count);
                 for (var i = 0; i < count; i++)
                 {
+                    var left = i < removed.Count ? removed[i] : default;
+                    var right = i < added.Count ? added[i] : default;
+
                     rows.Add(new SideBySideRow(
                         SideBySideRowKind.Change,
-                        i < removed.Count ? removed[i] : null,
-                        i < added.Count ? added[i] : null,
-                        hunkIndex));
+                        i < removed.Count ? left.Line : null,
+                        i < added.Count ? right.Line : null,
+                        hunkIndex,
+                        LeftIndex: i < removed.Count ? left.Index : -1,
+                        RightIndex: i < added.Count ? right.Index : -1));
                 }
 
                 removed.Clear();
