@@ -104,6 +104,9 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
     public bool IsConflictSelected => SelectedConflict is not null;
 
+    /// <summary>The built-in resolver for the selected conflict (active for text files with conflict markers).</summary>
+    public ConflictResolverViewModel Resolver { get; } = new();
+
     /// <summary>The normal diff, unless a conflicted file is selected.</summary>
     public bool IsDiffShown => !IsConflictSelected;
 
@@ -154,7 +157,47 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
     public bool IsNotRunningTool => RunningTool is null;
 
-    partial void OnSelectedConflictChanged(FileChange? value) => _ = LoadMergeToolsAsync(value);
+    partial void OnSelectedConflictChanged(FileChange? value)
+    {
+        _ = LoadMergeToolsAsync(value);
+        _ = LoadResolverAsync(value);
+    }
+
+    private async Task LoadResolverAsync(FileChange? conflict)
+    {
+        if (conflict is null || RepositoryPath is not { } repository)
+        {
+            Resolver.Clear();
+            return;
+        }
+
+        var fullPath = Path.Combine(repository, conflict.Path.Replace('/', Path.DirectorySeparatorChar));
+        var parsed = File.Exists(fullPath) ? Core.Operations.ConflictFile.Parse(await File.ReadAllTextAsync(fullPath)) : null;
+
+        // Deleted on one side, binary, or no markers: the whole-file buttons are the way to go.
+        if (parsed is null)
+        {
+            Resolver.Clear();
+            return;
+        }
+
+        var labels = (Ours: OursLabel, Theirs: TheirsLabel);
+        Resolver.Load(parsed, labels.Ours, labels.Theirs, UseOursText.Replace("Use", "Take"), UseTheirsText.Replace("Use", "Take"),
+            result => SaveResolvedAsync(conflict, fullPath, result));
+    }
+
+    private async Task SaveResolvedAsync(FileChange conflict, string fullPath, string result)
+    {
+        await File.WriteAllTextAsync(fullPath, result, new System.Text.UTF8Encoding(false));
+
+        if (Core.Operations.ConflictFile.Parse(result) is not null || Core.Operations.ConflictService.HasConflictMarkers(fullPath))
+        {
+            MessageRaised?.Invoke($"Saved {conflict.FileName}, but some conflicts are still undecided, so it stays under Conflicts.");
+            return;
+        }
+
+        await RunAsync(repository => _conflicts.MarkResolvedAsync(repository, conflict.Path));
+    }
 
     [RelayCommand]
     private Task UseOursAsync() => ResolveSelectedAsync(path => _conflicts.UseSideAsync(RepositoryPath!, path, Core.Operations.ConflictSide.Ours));
