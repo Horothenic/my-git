@@ -136,4 +136,32 @@ public sealed class ChangesServiceTests
 
         Assert.Equal(250, (await _service.GetStatusAsync(repository.Path)).Staged.Count);
     }
+
+    [Fact]
+    public async Task DiscardAll_LeavesACleanSlate_ButKeepsIgnoredFilesAndCommits()
+    {
+        using var repository = await TempRepository.CreateAsync();
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, ".gitignore"), "*.log\n");
+        await repository.CommitFileAsync("tracked.txt", "committed", "first");
+        await repository.RunAsync("add", ".gitignore");
+        await repository.RunAsync("commit", "-q", "-m", "ignore logs");
+
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "tracked.txt"), "edited");             // unstaged edit
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "staged-new.txt"), "new and staged");  // staged new file
+        await repository.RunAsync("add", "staged-new.txt");
+        Directory.CreateDirectory(Path.Combine(repository.Path, "folder"));
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "folder", "untracked.txt"), "new");    // untracked
+        await File.WriteAllTextAsync(Path.Combine(repository.Path, "debug.log"), "ignored");              // ignored
+
+        await _service.DiscardAllAsync(repository.Path);
+
+        var status = await _service.GetStatusAsync(repository.Path);
+        Assert.Empty(status.Unstaged);
+        Assert.Empty(status.Staged);
+        Assert.Equal("committed", await File.ReadAllTextAsync(Path.Combine(repository.Path, "tracked.txt")));
+        Assert.False(File.Exists(Path.Combine(repository.Path, "staged-new.txt")));
+        Assert.True(File.Exists(Path.Combine(repository.Path, "debug.log")));
+        Assert.False(File.Exists(Path.Combine(repository.Path, "folder", "untracked.txt")));
+        Assert.Equal("2", (await repository.RunAsync("rev-list", "--count", "HEAD")).StandardOutput.Trim());
+    }
 }

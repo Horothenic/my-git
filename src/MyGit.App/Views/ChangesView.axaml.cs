@@ -51,7 +51,7 @@ public sealed partial class ChangesView : UserControl
         StagedExplorerItem.Click += (_, _) => WithFirst(StagedTree, (vm, node) => vm.ShowInExplorer(node));
         StagedCopyItem.Click += (_, _) => WithFirst(StagedTree, (vm, node) => _ = vm.CopyPathAsync(node));
 
-        StashButton.Click += (_, _) => Run(vm => vm.StashAsync(Selection(UnstagedTree)));
+        UnstagedStashItem.Click += (_, _) => Run(vm => vm.StashAsync(Selection(UnstagedTree)));
 
         // The resolver's ↑/↓ (and each choice) scroll to the conflict they land on.
         DataContextChanged += (_, _) =>
@@ -153,12 +153,20 @@ public sealed partial class ChangesView : UserControl
 
     private void OnTreeKeyDown(KeyEventArgs e, bool staged)
     {
+        var tree = staged ? StagedTree : UnstagedTree;
+
+        // Ctrl+A selects every file shown (then Enter stages or unstages them all).
+        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.A)
+        {
+            tree.SelectAll();
+            e.Handled = true;
+            return;
+        }
+
         if (e.KeyModifiers != KeyModifiers.None)
         {
             return;
         }
-
-        var tree = staged ? StagedTree : UnstagedTree;
 
         switch (e.Key)
         {

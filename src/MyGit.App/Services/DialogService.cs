@@ -103,6 +103,13 @@ public sealed class DialogService : IDialogService
         return viewModel.Created is not null;
     }
 
+    public async Task<bool> ShowNewStackAsync(ViewModels.Stacks.NewStackViewModel viewModel)
+    {
+        var window = new NewStackWindow { DataContext = viewModel };
+        await window.ShowDialog(_owner);
+        return viewModel.Result is not null;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();

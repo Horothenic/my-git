@@ -10,6 +10,12 @@ namespace MyGit.Core.Stacks;
 /// <param name="NeedsRestack">The parent changed (amended, or new commits) since this branch was built on it.</param>
 public sealed record StackEntry(string Name, string Parent, string? Base, int CommitCount, bool NeedsRestack);
 
+/// <summary>A branch that could be part of a new stack (found below the chosen top branch).</summary>
+/// <param name="CommitCount">Commits it has that the trunk doesn't.</param>
+/// <param name="SameCommitAs">Another candidate on the very same commit (then only one of them is suggested).</param>
+/// <param name="IsSuggested">Ticked by default: on the way down from the top, and not a duplicate.</param>
+public sealed record StackCandidate(string Name, int CommitCount, string? SameCommitAs, bool IsSuggested);
+
 /// <summary>A chain of branches, each built on the one before it, bottom first.</summary>
 public sealed record Stack(string Trunk, IReadOnlyList<StackEntry> Branches)
 {
@@ -116,6 +122,94 @@ public sealed class StackService
         await SetAsync(repositoryPath, name, current, tip, cancellationToken);
     }
 
+    /// <summary>
+    /// The branches a stack topped by <paramref name="top"/> would be made of, top first: every local branch whose tip
+    /// is in <paramref name="top"/>'s history but not in the trunk. Branches already in a stack are left out.
+    /// When several sit on the same commit, only the first is suggested.
+    /// </summary>
+    public async Task<IReadOnlyList<StackCandidate>> FindCandidatesAsync(string repositoryPath, string top, string trunk, CancellationToken cancellationToken = default)
+    {
+        var parents = await ReadConfigAsync(repositoryPath, ParentKey, cancellationToken);
+        var stacked = parents.Keys.Concat(parents.Values).Where(name => name != trunk).ToHashSet(StringComparer.Ordinal);
+
+        // "name sha" for every local branch.
+        var branches = (await _git.RunCheckedAsync(repositoryPath, ["for-each-ref", "--format=%(refname:short) %(objectname)", "refs/heads"], cancellationToken: cancellationToken))
+            .OutputLines.Select(line => line.Split(' ')).Where(parts => parts.Length == 2).ToList();
+
+        var found = new List<(string Name, string Sha, int Count, int Activity)>();
+        foreach (var parts in branches)
+        {
+            var (name, sha) = (parts[0], parts[1]);
+            if (name == trunk || (stacked.Contains(name) && name != top))
+            {
+                continue;
+            }
+
+            if (name != top && !await IsAncestorAsync(repositoryPath, sha, top, cancellationToken))
+            {
+                continue;
+            }
+
+            var count = await _git.RunAsync(repositoryPath, ["rev-list", "--count", $"{trunk}..{sha}"], cancellationToken: cancellationToken);
+            if (count.Succeeded && int.TryParse(count.StandardOutput.Trim(), out var commits) && commits > 0)
+            {
+                // How much was done on it (its reflog: commits, amends, ...), to pick between branches on one commit.
+                var reflog = await _git.RunAsync(repositoryPath, ["reflog", "show", "--format=%gs", $"refs/heads/{name}"], cancellationToken: cancellationToken);
+                found.Add((name, sha, commits, reflog.Succeeded ? reflog.OutputLines.Count : 0));
+            }
+        }
+
+        // Top first: the more commits on top of the trunk, the higher in the stack. The top itself always leads;
+        // on one commit, the branch that was worked on comes first (and is the one suggested).
+        var ordered = found
+            .OrderByDescending(branch => branch.Name == top)
+            .ThenByDescending(branch => branch.Count)
+            .ThenByDescending(branch => branch.Activity)
+            .ThenBy(branch => branch.Name, StringComparer.Ordinal)
+            .ToList();
+        var candidates = new List<StackCandidate>();
+        var firstOnCommit = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (var index = 0; index < ordered.Count; index++)
+        {
+            var (name, sha, count, _) = ordered[index];
+            var duplicateOf = firstOnCommit.GetValueOrDefault(sha);
+            firstOnCommit.TryAdd(sha, name);
+
+            // Its own commits: the ones the next branch down doesn't have.
+            var below = ordered.Skip(index + 1).FirstOrDefault(other => other.Count < count).Count;
+            candidates.Add(new StackCandidate(name, count - below, duplicateOf, IsSuggested: duplicateOf is null));
+        }
+
+        return candidates;
+    }
+
+    /// <summary>
+    /// Makes a stack out of existing branches, <paramref name="bottomFirst"/>: the first sits on the trunk, each next
+    /// one on the one before. Where a branch starts is taken from where it meets its parent.
+    /// </summary>
+    public async Task CreateStackAsync(string repositoryPath, string trunk, IReadOnlyList<string> bottomFirst, CancellationToken cancellationToken = default)
+    {
+        if (bottomFirst.Count == 0)
+        {
+            throw new ArgumentException("Choose at least one branch.", nameof(bottomFirst));
+        }
+
+        var parents = await ReadConfigAsync(repositoryPath, ParentKey, cancellationToken);
+        for (var index = 0; index < bottomFirst.Count; index++)
+        {
+            var branch = bottomFirst[index];
+            var parent = index == 0 ? trunk : bottomFirst[index - 1];
+
+            if (parents.FirstOrDefault(pair => pair.Value == parent && pair.Key != branch && !bottomFirst.Contains(pair.Key)).Key is { } other)
+            {
+                throw new InvalidOperationException($"{other} is already stacked on {parent}. Take it out of its stack first.");
+            }
+
+            var meet = (await _git.RunCheckedAsync(repositoryPath, ["merge-base", parent, branch], cancellationToken: cancellationToken)).StandardOutput.Trim();
+            await SetAsync(repositoryPath, branch, parent, meet, cancellationToken);
+        }
+    }
+
     /// <summary>Takes a branch out of its stack (the branch itself stays). Branches above it then sit on its parent.</summary>
     public async Task RemoveAsync(string repositoryPath, string branch, CancellationToken cancellationToken = default)
     {
@@ -128,6 +222,100 @@ public sealed class StackService
 
         await _git.RunAsync(repositoryPath, ["config", "--unset", $"branch.{branch}.{ParentKey}"], cancellationToken: cancellationToken);
         await _git.RunAsync(repositoryPath, ["config", "--unset", $"branch.{branch}.{BaseKey}"], cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// After the bottom <paramref name="mergedCount"/> branches were (squash) merged into the trunk on GitHub:
+    /// fetches, fast-forwards the local trunk, removes the merged branches (here and on GitHub, if still there),
+    /// and rebases the rest onto the trunk without the merged commits. A conflict stops it like any rebase;
+    /// after Continue, <see cref="RestackAsync"/> finishes the rest. Returns <see cref="RebaseOutcome.UpToDate"/>
+    /// when the whole stack was merged (nothing left to rebase).
+    /// </summary>
+    /// <param name="returnTo">The branch to end on; when it was merged, the new bottom (or the trunk) instead.</param>
+    public async Task<RebaseOutcome> SyncMergedAsync(
+        string repositoryPath,
+        Stack stack,
+        int mergedCount,
+        string? returnTo,
+        bool autoStash,
+        string remote = "origin",
+        CancellationToken cancellationToken = default)
+    {
+        if (mergedCount <= 0 || mergedCount > stack.Branches.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mergedCount));
+        }
+
+        var trunk = stack.Trunk;
+        await _git.RunCheckedAsync(repositoryPath, ["fetch", "--quiet", "--prune", remote], cancellationToken: cancellationToken);
+        await FastForwardAsync(repositoryPath, trunk, $"{remote}/{trunk}", cancellationToken);
+
+        var merged = stack.Branches.Take(mergedCount).ToList();
+        var rest = stack.Branches.Skip(mergedCount).ToList();
+
+        // Don't stand on a branch that's about to be deleted.
+        var current = (await _git.RunCheckedAsync(repositoryPath, ["branch", "--show-current"], cancellationToken: cancellationToken)).StandardOutput.Trim();
+        var mergedNames = merged.Select(branch => branch.Name).ToHashSet(StringComparer.Ordinal);
+        var endOn = returnTo is not null && mergedNames.Contains(returnTo) ? rest.FirstOrDefault()?.Name ?? trunk : returnTo;
+        if (mergedNames.Contains(current))
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["switch", "--quiet", endOn ?? trunk], cancellationToken: cancellationToken);
+        }
+
+        // The new bottom's own commits start where the last merged branch ended (or at its recorded base,
+        // if that branch changed after the new bottom was built on it).
+        if (rest.FirstOrDefault() is { } bottom)
+        {
+            var lastMerged = merged[^1];
+            var upstream = bottom.NeedsRestack
+                ? bottom.Base ?? await ForkPointAsync(repositoryPath, lastMerged.Name, bottom.Name, cancellationToken)
+                : await TipAsync(repositoryPath, lastMerged.Name, cancellationToken);
+            await SetAsync(repositoryPath, bottom.Name, trunk, upstream, cancellationToken);
+        }
+
+        foreach (var branch in merged)
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["branch", "--quiet", "--delete", "--force", branch.Name], cancellationToken: cancellationToken);
+            var onRemote = await _git.RunAsync(repositoryPath, ["rev-parse", "--verify", "--quiet", $"refs/remotes/{remote}/{branch.Name}"], cancellationToken: cancellationToken);
+            if (onRemote.Succeeded)
+            {
+                await _git.RunAsync(repositoryPath, ["push", "--quiet", remote, "--delete", branch.Name], cancellationToken: cancellationToken);
+            }
+        }
+
+        if (rest.Count == 0)
+        {
+            return RebaseOutcome.UpToDate;
+        }
+
+        var remaining = (await GetStacksAsync(repositoryPath, cancellationToken)).First(other => other.Contains(rest[0].Name));
+        return await RestackAsync(repositoryPath, remaining, endOn, autoStash, cancellationToken);
+    }
+
+    // Moves the local trunk up to what was fetched; refuses when it has commits GitHub doesn't.
+    private async Task FastForwardAsync(string repositoryPath, string branch, string fetched, CancellationToken cancellationToken)
+    {
+        var target = await _git.RunAsync(repositoryPath, ["rev-parse", "--verify", "--quiet", fetched], cancellationToken: cancellationToken);
+        if (!target.Succeeded)
+        {
+            throw new InvalidOperationException($"{fetched} isn't on GitHub, so there's nothing to sync with.");
+        }
+
+        var local = await TipAsync(repositoryPath, branch, cancellationToken);
+        var to = target.StandardOutput.Trim();
+        if (local == to)
+        {
+            return;
+        }
+
+        if (!await IsAncestorAsync(repositoryPath, local, to, cancellationToken))
+        {
+            throw new InvalidOperationException($"Your {branch} has commits that aren't on GitHub. Push or move them first, then sync.");
+        }
+
+        var current = (await _git.RunCheckedAsync(repositoryPath, ["branch", "--show-current"], cancellationToken: cancellationToken)).StandardOutput.Trim();
+        string[] arguments = current == branch ? ["merge", "--quiet", "--ff-only", fetched] : ["update-ref", $"refs/heads/{branch}", to, local];
+        await _git.RunCheckedAsync(repositoryPath, arguments, cancellationToken: cancellationToken);
     }
 
     /// <summary>

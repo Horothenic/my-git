@@ -122,6 +122,10 @@ public sealed class PullRequestService
     public async Task<string?> GetBodyAsync(GitHubRepositoryId repository, int number) =>
         (await Client().PullRequest.Get(repository.Owner, repository.Name, number)).Body;
 
+    /// <summary>Points the pull request at another base branch (after the one below it in a stack was merged).</summary>
+    public Task UpdateBaseAsync(GitHubRepositoryId repository, int number, string @base) =>
+        Client().PullRequest.Update(repository.Owner, repository.Name, number, new PullRequestUpdate { Base = @base });
+
     public Task UpdateBodyAsync(GitHubRepositoryId repository, int number, string body) =>
         Client().PullRequest.Update(repository.Owner, repository.Name, number, new PullRequestUpdate { Body = body });
 

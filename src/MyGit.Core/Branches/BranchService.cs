@@ -87,8 +87,21 @@ public sealed partial class BranchService
         RunSwitchAsync(repositoryPath, ["switch", "--create", branch.LocalName, "--track", branch.Name], branch.LocalName, stash, cancellationToken);
 
     /// <summary>Renames a local branch. Its link to GitHub (if any) stays pointed at the old remote branch.</summary>
-    public Task RenameAsync(string repositoryPath, string oldName, string newName, CancellationToken cancellationToken = default) =>
-        _git.RunCheckedAsync(repositoryPath, ["branch", "--move", oldName, newName], cancellationToken: cancellationToken);
+    public async Task RenameAsync(string repositoryPath, string oldName, string newName, CancellationToken cancellationToken = default)
+    {
+        await _git.RunCheckedAsync(repositoryPath, ["branch", "--move", oldName, newName], cancellationToken: cancellationToken);
+
+        // A branch stacked on the renamed one keeps pointing at it (git moves the renamed branch's own settings).
+        var children = await _git.RunAsync(repositoryPath, ["config", "--local", "--get-regexp", @"^branch\..*\.mygit-parent$"], cancellationToken: cancellationToken);
+        foreach (var line in children.Succeeded ? children.OutputLines : [])
+        {
+            var space = line.IndexOf(' ');
+            if (space > 0 && line[(space + 1)..].Trim() == oldName)
+            {
+                await _git.RunCheckedAsync(repositoryPath, ["config", line[..space], newName], cancellationToken: cancellationToken);
+            }
+        }
+    }
 
     /// <summary>
     /// Deletes a local branch (never the one you're on). Without <paramref name="force"/>, refuses

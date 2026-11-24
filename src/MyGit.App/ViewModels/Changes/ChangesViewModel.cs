@@ -454,6 +454,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
                 }
 
                 UpdateTrees();
+                DiscardAllCommand.NotifyCanExecuteChanged();
                 await RefreshDiffAsync();
                 await RefreshStashesAsync(repository);
             }
@@ -530,9 +531,6 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         UpdateTrees();
         await RefreshDiffAsync();
     }
-
-    [RelayCommand]
-    private Task StageAllAsync() => StageAsync(Unstaged.Roots.ToList());
 
     [RelayCommand]
     private Task UnstageAllAsync() => UnstageAsync(Staged.Roots.ToList());
@@ -617,7 +615,35 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         await RefreshAsync();
     }
 
-    /// <summary>The Unstaged header's Stash… button; with files selected, offers to stash only those.</summary>
+    /// <summary>
+    /// A clean slate: every uncommitted change goes (staged, unstaged, new and hidden files), after asking.
+    /// New files go to the Recycle Bin. Committed work and stashes stay.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasAnythingToDiscard))]
+    private async Task DiscardAllAsync()
+    {
+        if (RepositoryPath is null)
+        {
+            return;
+        }
+
+        var count = _status.Unstaged.Count + _status.Staged.Count;
+        var during = IsOperationActive ? " The stopped rebase (or merge) stays in progress: Continue or Abort it afterwards." : string.Empty;
+        if (!await _dialogs.ConfirmAsync(
+                $"Discard all {(count == 1 ? "1 change" : $"{count} changes")}?",
+                "Every uncommitted change goes: staged and unstaged edits, new files (to the Recycle Bin) and files you've hidden. " +
+                "Your commits and stashes aren't touched." + during,
+                "Discard all"))
+        {
+            return;
+        }
+
+        await RunAsync(repository => _changes.DiscardAllAsync(repository));
+    }
+
+    private bool HasAnythingToDiscard() => _status.Unstaged.Count + _status.Staged.Count > 0;
+
+    /// <summary>Right-click Stash… in Unstaged; with files selected, stashes only those (untick to stash everything).</summary>
     public async Task StashAsync(IReadOnlyCollection<FileTreeNodeViewModel> selection)
     {
         if (RepositoryPath is not { } repository || _status.Unstaged.Count + _status.Staged.Count == 0)
@@ -633,6 +659,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
             "Stash",
             _ => Task.FromResult<string?>(null),
             CheckBoxText: selectedPaths.Count > 0 ? $"Only the {selectedPaths.Count} selected file(s)" : null,
+            CheckBoxDefault: selectedPaths.Count > 0,
             AllowEmpty: true));
 
         if (answer is null)
