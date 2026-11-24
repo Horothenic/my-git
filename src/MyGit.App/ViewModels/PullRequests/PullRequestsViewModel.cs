@@ -50,6 +50,14 @@ public sealed partial class PullRequestsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsAvailable))]
     public partial string? Branch { get; set; }
 
+    /// <summary>The open repository on GitHub (null for other hosts).</summary>
+    public GitHubRepositoryId? Repository => _repository;
+
+    /// <summary>Each branch's pull request, as of the last time GitHub was asked.</summary>
+    public IReadOnlyDictionary<string, PullRequestInfo> ByBranch => _byBranch;
+
+    public bool IsSignedIn => _pullRequests.IsSignedIn;
+
     /// <summary>The current branch's pull request, if it has one.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasPullRequest), nameof(ToolTip), nameof(IsOpen), nameof(IsDraft), nameof(IsMerged), nameof(IsClosed))]

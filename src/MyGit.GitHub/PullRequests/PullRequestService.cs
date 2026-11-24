@@ -118,6 +118,13 @@ public sealed class PullRequestService
         }
     }
 
+    /// <summary>The pull request's description (null when empty).</summary>
+    public async Task<string?> GetBodyAsync(GitHubRepositoryId repository, int number) =>
+        (await Client().PullRequest.Get(repository.Owner, repository.Name, number)).Body;
+
+    public Task UpdateBodyAsync(GitHubRepositoryId repository, int number, string body) =>
+        Client().PullRequest.Update(repository.Owner, repository.Name, number, new PullRequestUpdate { Body = body });
+
     private GitHubClient Client() => _accounts.CreateClient() ?? throw new InvalidOperationException("Sign in to GitHub first.");
 
     private static PullRequestInfo ToInfo(PullRequest pullRequest)

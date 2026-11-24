@@ -31,6 +31,9 @@ public sealed partial class OperationViewModel : ObservableObject
     /// <summary>Raised with a short success note.</summary>
     public event Action<string>? NoticeRaised;
 
+    /// <summary>Raised when a stopped operation ends: true when it was aborted, false when it finished.</summary>
+    public event Action<bool>? Ended;
+
     /// <summary>Raised after the operation moved on, so the window refreshes.</summary>
     public event Func<Task>? RepositoryChanged;
 
@@ -258,6 +261,7 @@ public sealed partial class OperationViewModel : ObservableObject
         {
             await _operations.AbortAsync(repository, kind);
             await RestoreStashAsync(repository);
+            Ended?.Invoke(true);
             NoticeRaised?.Invoke("Aborted. Everything is back to how it was.");
         });
     }
@@ -288,6 +292,7 @@ public sealed partial class OperationViewModel : ObservableObject
             }
 
             await RestoreStashAsync(repository);
+            Ended?.Invoke(false);
             NoticeRaised?.Invoke(kind == OperationKind.Rebase ? "Rebase finished" : "Done");
         });
     }

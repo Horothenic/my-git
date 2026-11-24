@@ -213,6 +213,7 @@
                                   <MenuItem Header="Switch to this branch" Command="{Binding SwitchCommand}" IsEnabled="{Binding IsNotCurrent}" />
                                   <MenuItem Header="{Binding RebaseText}" Command="{Binding RebaseOntoCommand}" IsVisible="{Binding IsNotCurrent}" />
                                   <MenuItem Header="{Binding InteractiveRebaseText}" Command="{Binding RebaseInteractivelyOntoCommand}" IsVisible="{Binding IsNotCurrent}" />
+                                  <MenuItem Header="Stack a new branch on top…" Command="{Binding StackOnTopCommand}" IsVisible="{Binding IsCurrent}" />
                                   <MenuItem Header="{Binding FastForwardText}" Command="{Binding FastForwardCommand}" IsVisible="{Binding CanFastForward}" />
                                   <Separator />
                                   <MenuItem Header="Rename…" Command="{Binding RenameCommand}" />
@@ -360,17 +361,9 @@
       </DockPanel>
     </Border>
 
-    <!-- ===== Green note after fetch / pull / push (hides by itself) ===== -->
-    <Border DockPanel.Dock="Top" IsVisible="{Binding Sync.HasNotice}"
-            Background="{DynamicResource DiffAddedBrush}" Padding="12,6">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <mi:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16" Foreground="{DynamicResource SuccessBrush}" />
-        <TextBlock Text="{Binding Sync.Notice}" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" />
-      </StackPanel>
-    </Border>
-
-    <!-- ===== Status bar (bottom, one line): a stopped rebase / merge / cherry-pick / revert, and messages ===== -->
-    <Border DockPanel.Dock="Bottom" Classes="status-bar" IsVisible="{Binding IsStatusBarVisible}">
+    <!-- ===== Status bar (bottom, one line): a stopped rebase / merge / cherry-pick / revert, warnings,
+         and short green notes ("Pushed 3 commits"), which hide by themselves. Green only when it's just a note. ===== -->
+    <Border DockPanel.Dock="Bottom" Classes="status-bar" Classes.success="{Binding IsSuccessBar}" IsVisible="{Binding IsStatusBarVisible}">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding Operation.IsActive}" Margin="12,0,0,0">
           <Button Classes="status-button" Content="Abort" Command="{Binding Operation.AbortCommand}"
@@ -385,6 +378,12 @@
           <mi:MaterialIcon Kind="SourceBranchSync" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
           <TextBlock Text="{Binding Operation.Title}" FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" />
           <TextBlock Text="{Binding Operation.Details}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- A short success note (when there's no warning) -->
+        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding IsNoticeShown}" Margin="16,0,0,0">
+          <mi:MaterialIcon Kind="CheckCircleOutline" Width="14" Height="14" Foreground="{DynamicResource SuccessBrush}" />
+          <TextBlock Text="{Binding Sync.Notice}" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
         </StackPanel>
 
         <!-- The latest message, after the operation (or alone), with × to dismiss -->
@@ -429,7 +428,7 @@
 
       <!-- Repository open: main tabs -->
       <!-- Full-width tabs on a toolbar-colored strip (the selected tab takes the content's color). -->
-      <TabControl Classes="main-tabs" IsVisible="{Binding HasRepository}" Padding="0">
+      <TabControl Classes="main-tabs" IsVisible="{Binding HasRepository}" Padding="0" SelectedIndex="{Binding SelectedTabIndex}">
         <TabControl.ItemsPanel>
           <ItemsPanelTemplate>
             <UniformGrid Rows="1" Background="{DynamicResource ToolbarBackgroundBrush}" />
@@ -464,10 +463,7 @@
               <TextBlock Text="Stacks" VerticalAlignment="Center" />
             </StackPanel>
           </TabItem.Header>
-          <Border Classes="placeholder">
-            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Text="Stacked pull requests arrive in Phases 10 and 11." />
-          </Border>
+          <views:StacksView DataContext="{Binding Stacks}" />
         </TabItem>
       </TabControl>
     </Panel>
