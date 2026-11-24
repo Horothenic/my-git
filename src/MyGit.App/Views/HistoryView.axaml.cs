@@ -34,6 +34,8 @@ public sealed partial class HistoryView : UserControl
             ResetItem.IsEnabled = branch is not null;
             RebaseItem.Header = branch is null ? "Rebase onto here… (switch to a branch first)" : $"Rebase {branch} onto here…";
             RebaseItem.IsEnabled = branch is not null;
+            InteractiveRebaseItem.Header = branch is null ? "Interactive rebase from here… (switch to a branch first)" : "Interactive rebase from here…";
+            InteractiveRebaseItem.IsEnabled = branch is not null;
         };
 
         CreateBranchItem.Click += (_, _) => WithCommit((vm, commit) => vm.CreateBranchAsync(commit, fromTag: false));
@@ -43,6 +45,7 @@ public sealed partial class HistoryView : UserControl
         RevertItem.Click += (_, _) => WithCommit((vm, commit) => vm.RevertAsync(commit));
         ResetItem.Click += (_, _) => WithCommit((vm, commit) => vm.ResetAsync(commit));
         RebaseItem.Click += (_, _) => WithCommit((vm, commit) => vm.RebaseOntoAsync(commit));
+        InteractiveRebaseItem.Click += (_, _) => WithCommit((vm, commit) => vm.RebaseInteractivelyFromAsync(commit));
         CheckoutItem.Click += (_, _) => WithCommit((vm, commit) => vm.CheckoutAsync(commit));
         CopyShaItem.Click += (_, _) => WithCommit((vm, commit) => vm.CopyShaAsync(commit));
         CopyMessageItem.Click += (_, _) => WithCommit((vm, commit) => vm.CopyMessageAsync(commit));

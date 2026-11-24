@@ -212,6 +212,7 @@
                                 <ContextMenu>
                                   <MenuItem Header="Switch to this branch" Command="{Binding SwitchCommand}" IsEnabled="{Binding IsNotCurrent}" />
                                   <MenuItem Header="{Binding RebaseText}" Command="{Binding RebaseOntoCommand}" IsVisible="{Binding IsNotCurrent}" />
+                                  <MenuItem Header="{Binding InteractiveRebaseText}" Command="{Binding RebaseInteractivelyOntoCommand}" IsVisible="{Binding IsNotCurrent}" />
                                   <MenuItem Header="{Binding FastForwardText}" Command="{Binding FastForwardCommand}" IsVisible="{Binding CanFastForward}" />
                                   <Separator />
                                   <MenuItem Header="Rename…" Command="{Binding RenameCommand}" />

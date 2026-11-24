@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MyGit.App.Services;
+using MyGit.App.ViewModels.Rebase;
 using MyGit.Core.Git;
 using MyGit.Core.Operations;
 
@@ -68,6 +69,12 @@ public sealed partial class OperationViewModel : ObservableObject
         get
         {
             var parts = new List<string>();
+
+            if (State.IsEditStop)
+            {
+                var subject = State.CurrentCommit is { Length: > 0 } stoppedAt ? $"“{stoppedAt}”" : "this commit";
+                return $"stopped at {subject} so you can change it: stage changes to add them to it, then Continue";
+            }
 
             if (State.Kind == OperationKind.Rebase && State.TotalSteps > 0)
             {
@@ -148,6 +155,82 @@ public sealed partial class OperationViewModel : ObservableObject
         });
     }
 
+    /// <summary>Interactive rebase of the current branch onto another branch (its commits that aren't on it).</summary>
+    public Task StartInteractiveRebaseAsync(string branch, string onto) => InteractiveRebaseAsync(branch, onto, $"{branch} onto {onto}");
+
+    /// <summary>Interactive rebase of the current branch from <paramref name="commit"/> (that commit and the ones after it).</summary>
+    public async Task StartInteractiveRebaseFromAsync(string branch, string commit, string commitLabel)
+    {
+        if (_repositoryPath is not { } repository || IsActive)
+        {
+            return;
+        }
+
+        string? upstream;
+        try
+        {
+            upstream = await _rebase.GetUpstreamForAsync(repository, commit);
+        }
+        catch (InvalidOperationException exception)
+        {
+            MessageRaised?.Invoke(exception.Message);
+            return;
+        }
+
+        await InteractiveRebaseAsync(branch, upstream, $"{branch} from {commitLabel}");
+    }
+
+    private async Task InteractiveRebaseAsync(string branch, string? upstream, string description)
+    {
+        if (_repositoryPath is not { } repository || IsActive)
+        {
+            return;
+        }
+
+        IReadOnlyList<RebaseCommit> commits;
+        bool flattensMerges;
+        try
+        {
+            commits = await _rebase.GetCommitsToRebaseAsync(repository, upstream);
+            flattensMerges = await _rebase.HasMergesToFlattenAsync(repository, upstream);
+        }
+        catch (GitCommandException exception)
+        {
+            MessageRaised?.Invoke(exception.Result.StandardError.Trim());
+            return;
+        }
+
+        if (commits.Count == 0)
+        {
+            NoticeRaised?.Invoke($"Nothing to rebase: {branch} has no commits of its own there");
+            return;
+        }
+
+        var window = new InteractiveRebaseViewModel(description, commits, flattensMerges);
+        if (!await _dialogs.ShowInteractiveRebaseAsync(window))
+        {
+            return;
+        }
+
+        await RunAsync(async () => Report(await _rebase.RebaseInteractiveAsync(repository, upstream, window.Plan, window.AutoStash), branch));
+    }
+
+    private void Report(RebaseOutcome outcome, string branch)
+    {
+        switch (outcome)
+        {
+            case RebaseOutcome.Done:
+            case RebaseOutcome.UpToDate:
+                NoticeRaised?.Invoke($"Rebased {branch}");
+                break;
+            case RebaseOutcome.Stopped:
+                break; // the yellow bar says it stopped to change the commit, and what to do
+            case RebaseOutcome.Conflict:
+                MessageRaised?.Invoke("The rebase stopped on a conflict. Resolve the files under Conflicts in the Changes tab, then press Continue.");
+                break;
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanContinue))]
     private Task ContinueAsync() => StepAsync(kind => _operations.ContinueAsync(_repositoryPath!, kind));
 
@@ -195,7 +278,12 @@ public sealed partial class OperationViewModel : ObservableObject
         {
             if (await step(kind) == ContinueOutcome.StoppedAgain)
             {
-                MessageRaised?.Invoke("Stopped on another conflict. Resolve the files under Conflicts, then press Continue.");
+                // An edit stop is explained by the yellow bar itself; a conflict needs a pointer to the files.
+                if (!(await _operations.GetStateAsync(repository)).IsEditStop)
+                {
+                    MessageRaised?.Invoke("Stopped on another conflict. Resolve the files under Conflicts, then press Continue.");
+                }
+
                 return;
             }
 

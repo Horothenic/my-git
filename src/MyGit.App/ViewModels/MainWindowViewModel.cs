@@ -49,6 +49,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Operation.RepositoryChanged += RefreshAsync;
         Branches.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
         History.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
+        Branches.InteractiveRebaseRequested += onto => Operation.StartInteractiveRebaseAsync(BranchName, onto);
+        History.InteractiveRebaseRequested += (commit, label) => Operation.StartInteractiveRebaseFromAsync(BranchName, commit, label);
         Changes.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(Changes.ConflictCount))

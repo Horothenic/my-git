@@ -28,6 +28,12 @@ public sealed partial class LocalBranchItemViewModel(LocalBranch branch, Branche
     [RelayCommand]
     private void RebaseOnto() => owner.RequestRebase(this);
 
+    [RelayCommand]
+    private void RebaseInteractivelyOnto() => owner.RequestInteractiveRebase(this);
+
+    /// <summary>e.g. "Interactively rebase feature/inventory onto main…" (set when the list loads).</summary>
+    public string InteractiveRebaseText { get; init; } = string.Empty;
+
     /// <summary>e.g. "Rebase feature/inventory onto main…" (set when the list loads).</summary>
     public string RebaseText { get; init; } = string.Empty;
 
@@ -90,6 +96,15 @@ public sealed partial class BranchesViewModel : ObservableObject
     {
         CloseRequested?.Invoke();
         _ = RebaseRequested?.Invoke(item.Name, item.Name);
+    }
+
+    /// <summary>Raised to rebase the current branch interactively onto a branch (its name).</summary>
+    public event Func<string, Task>? InteractiveRebaseRequested;
+
+    public void RequestInteractiveRebase(LocalBranchItemViewModel item)
+    {
+        CloseRequested?.Invoke();
+        _ = InteractiveRebaseRequested?.Invoke(item.Name);
     }
 
     /// <summary>Raised so the view can close the dropdown before a dialog or after switching.</summary>
@@ -284,7 +299,11 @@ public sealed partial class BranchesViewModel : ObservableObject
         foreach (var branch in _all.Local.Where(b => Matches(b.Name)))
         {
             var current = _all.Local.FirstOrDefault(b => b.IsCurrent)?.Name;
-            Local.Add(new LocalBranchItemViewModel(branch, this) { RebaseText = current is null ? "Rebase onto this…" : $"Rebase {current} onto {branch.Name}…" });
+            Local.Add(new LocalBranchItemViewModel(branch, this) 
+            {
+                RebaseText = current is null ? "Rebase onto this…" : $"Rebase {current} onto {branch.Name}…",
+                InteractiveRebaseText = current is null ? "Interactively rebase onto this…" : $"Interactively rebase {current} onto {branch.Name}…",
+            });
         }
 
         foreach (var branch in _all.Remote.Where(b => Matches(b.Name)))

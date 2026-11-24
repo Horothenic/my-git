@@ -65,7 +65,7 @@ public sealed class ConflictFileTests
         var result = file.Build([ConflictChoice.Ours, ConflictChoice.Unresolved]);
 
         Assert.Contains("int size = 16;", result);
-        Assert.Contains("<<<<<<< HEAD\n    // main's note\n=======", result);
+        Assert.Contains("<<<<<<< HEAD\n    // main's note\n=======", result.ReplaceLineEndings("\n"));
         Assert.NotNull(ConflictFile.Parse(result)); // still a valid conflicted file
     }
 
