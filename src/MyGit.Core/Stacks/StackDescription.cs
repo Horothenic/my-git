@@ -9,10 +9,14 @@ public static class StackDescription
     public const string Start = "<!-- my-git-stack -->";
     public const string End = "<!-- /my-git-stack -->";
 
-    /// <summary>The section for the PR at <paramref name="current"/> in <paramref name="numbers"/> (bottom first).</summary>
-    public static string Section(string trunk, IReadOnlyList<int> numbers, int current)
+    /// <summary>
+    /// The section for the PR at <paramref name="current"/> in <paramref name="numbers"/> (bottom first).
+    /// <paramref name="merged"/> ones are struck through, e.g. "~~#14~~ → **#15** → #16".
+    /// </summary>
+    public static string Section(string trunk, IReadOnlyList<int> numbers, int current, IReadOnlySet<int>? merged = null)
     {
-        var links = numbers.Select((number, index) => index == current ? $"**#{number}**" : $"#{number}");
+        var links = numbers.Select((number, index) =>
+            index == current ? $"**#{number}**" : merged?.Contains(number) == true ? $"~~#{number}~~" : $"#{number}");
         return $"{Start}\n---\nStack (from {trunk} up): {string.Join(" → ", links)}\n{End}";
     }
 

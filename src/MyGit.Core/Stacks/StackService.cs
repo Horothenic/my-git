@@ -131,6 +131,100 @@ public sealed class StackService
     }
 
     /// <summary>
+    /// After the bottom <paramref name="mergedCount"/> branches were (squash) merged into the trunk on GitHub:
+    /// fetches, fast-forwards the local trunk, removes the merged branches (here and on GitHub, if still there),
+    /// and rebases the rest onto the trunk without the merged commits. A conflict stops it like any rebase;
+    /// after Continue, <see cref="RestackAsync"/> finishes the rest. Returns <see cref="RebaseOutcome.UpToDate"/>
+    /// when the whole stack was merged (nothing left to rebase).
+    /// </summary>
+    /// <param name="returnTo">The branch to end on; when it was merged, the new bottom (or the trunk) instead.</param>
+    public async Task<RebaseOutcome> SyncMergedAsync(
+        string repositoryPath,
+        Stack stack,
+        int mergedCount,
+        string? returnTo,
+        bool autoStash,
+        string remote = "origin",
+        CancellationToken cancellationToken = default)
+    {
+        if (mergedCount <= 0 || mergedCount > stack.Branches.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(mergedCount));
+        }
+
+        var trunk = stack.Trunk;
+        await _git.RunCheckedAsync(repositoryPath, ["fetch", "--quiet", "--prune", remote], cancellationToken: cancellationToken);
+        await FastForwardAsync(repositoryPath, trunk, $"{remote}/{trunk}", cancellationToken);
+
+        var merged = stack.Branches.Take(mergedCount).ToList();
+        var rest = stack.Branches.Skip(mergedCount).ToList();
+
+        // Don't stand on a branch that's about to be deleted.
+        var current = (await _git.RunCheckedAsync(repositoryPath, ["branch", "--show-current"], cancellationToken: cancellationToken)).StandardOutput.Trim();
+        var mergedNames = merged.Select(branch => branch.Name).ToHashSet(StringComparer.Ordinal);
+        var endOn = returnTo is not null && mergedNames.Contains(returnTo) ? rest.FirstOrDefault()?.Name ?? trunk : returnTo;
+        if (mergedNames.Contains(current))
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["switch", "--quiet", endOn ?? trunk], cancellationToken: cancellationToken);
+        }
+
+        // The new bottom's own commits start where the last merged branch ended (or at its recorded base,
+        // if that branch changed after the new bottom was built on it).
+        if (rest.FirstOrDefault() is { } bottom)
+        {
+            var lastMerged = merged[^1];
+            var upstream = bottom.NeedsRestack
+                ? bottom.Base ?? await ForkPointAsync(repositoryPath, lastMerged.Name, bottom.Name, cancellationToken)
+                : await TipAsync(repositoryPath, lastMerged.Name, cancellationToken);
+            await SetAsync(repositoryPath, bottom.Name, trunk, upstream, cancellationToken);
+        }
+
+        foreach (var branch in merged)
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["branch", "--quiet", "--delete", "--force", branch.Name], cancellationToken: cancellationToken);
+            var onRemote = await _git.RunAsync(repositoryPath, ["rev-parse", "--verify", "--quiet", $"refs/remotes/{remote}/{branch.Name}"], cancellationToken: cancellationToken);
+            if (onRemote.Succeeded)
+            {
+                await _git.RunAsync(repositoryPath, ["push", "--quiet", remote, "--delete", branch.Name], cancellationToken: cancellationToken);
+            }
+        }
+
+        if (rest.Count == 0)
+        {
+            return RebaseOutcome.UpToDate;
+        }
+
+        var remaining = (await GetStacksAsync(repositoryPath, cancellationToken)).First(other => other.Contains(rest[0].Name));
+        return await RestackAsync(repositoryPath, remaining, endOn, autoStash, cancellationToken);
+    }
+
+    // Moves the local trunk up to what was fetched; refuses when it has commits GitHub doesn't.
+    private async Task FastForwardAsync(string repositoryPath, string branch, string fetched, CancellationToken cancellationToken)
+    {
+        var target = await _git.RunAsync(repositoryPath, ["rev-parse", "--verify", "--quiet", fetched], cancellationToken: cancellationToken);
+        if (!target.Succeeded)
+        {
+            throw new InvalidOperationException($"{fetched} isn't on GitHub, so there's nothing to sync with.");
+        }
+
+        var local = await TipAsync(repositoryPath, branch, cancellationToken);
+        var to = target.StandardOutput.Trim();
+        if (local == to)
+        {
+            return;
+        }
+
+        if (!await IsAncestorAsync(repositoryPath, local, to, cancellationToken))
+        {
+            throw new InvalidOperationException($"Your {branch} has commits that aren't on GitHub. Push or move them first, then sync.");
+        }
+
+        var current = (await _git.RunCheckedAsync(repositoryPath, ["branch", "--show-current"], cancellationToken: cancellationToken)).StandardOutput.Trim();
+        string[] arguments = current == branch ? ["merge", "--quiet", "--ff-only", fetched] : ["update-ref", $"refs/heads/{branch}", to, local];
+        await _git.RunCheckedAsync(repositoryPath, arguments, cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Replays every branch whose parent changed onto the parent's new version, bottom up. Each step is one
     /// rebase (--update-refs) that also carries along the branches above it that still sit on each other,
     /// so the usual case (a lower branch amended) is a single rebase. A conflict stops it like any rebase:

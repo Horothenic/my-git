@@ -23,6 +23,12 @@
       <Setter Property="HorizontalAlignment" Value="Left" />
       <Setter Property="Background" Value="{DynamicResource BorderBrush}" />
     </Style>
+    <Style Selector="Border.merged-banner">
+      <Setter Property="BorderBrush" Value="{DynamicResource MergedBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="Padding" Value="10,6" />
+    </Style>
     <Style Selector="Border.restack-badge">
       <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
       <Setter Property="CornerRadius" Value="9" />
@@ -76,7 +82,14 @@
               <TextBlock Text="Create PRs" />
             </StackPanel>
           </Button>
-          <Button Classes="accent" Command="{Binding PushStackCommand}" ToolTip.Tip="Restack if needed, then push every branch (force with lease)">
+          <Button Classes="accent" Command="{Binding SyncStackCommand}" IsVisible="{Binding HasMerged}"
+                  ToolTip.Tip="Rebase the rest onto the trunk without the merged commits, remove the merged branches, push and update the PRs">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <mi:MaterialIcon Kind="SourceMerge" Width="16" Height="16" />
+              <TextBlock Text="Sync stack" />
+            </StackPanel>
+          </Button>
+          <Button Classes="accent" Command="{Binding PushStackCommand}" IsVisible="{Binding !HasMerged}" ToolTip.Tip="Restack if needed, then push every branch (force with lease)">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <mi:MaterialIcon Kind="ArrowUp" Width="16" Height="16" />
               <TextBlock Text="Push stack" />
@@ -88,6 +101,13 @@
           <TextBlock Classes="caption" Text="{Binding SelectedSubtitle}" VerticalAlignment="Center" />
         </StackPanel>
       </DockPanel>
+
+      <Border DockPanel.Dock="Top" Classes="merged-banner" IsVisible="{Binding HasMerged}" Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <mi:MaterialIcon Kind="SourceMerge" Width="16" Height="16" Foreground="{DynamicResource MergedBrush}" VerticalAlignment="Top" />
+          <TextBlock Text="{Binding MergedText}" TextWrapping="Wrap" Foreground="{DynamicResource MergedBrush}" MaxWidth="900" />
+        </StackPanel>
+      </Border>
 
       <TextBlock DockPanel.Dock="Bottom" Classes="caption" TextWrapping="Wrap" Margin="0,12,0,0" Text="{Binding Hint}" />
 
@@ -110,6 +130,7 @@
                       <Panel Grid.Column="0" VerticalAlignment="Center">
                         <mi:MaterialIcon Kind="Check" Width="16" Height="16" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding IsCurrent}" />
                         <mi:MaterialIcon Kind="SourceBranch" Width="16" Height="16" IsVisible="{Binding IsNotCurrent}" />
+                        <mi:MaterialIcon Kind="SourceMerge" Width="16" Height="16" Foreground="{DynamicResource MergedBrush}" IsVisible="{Binding IsMerged}" />
                       </Panel>
                       <StackPanel Grid.Column="1" Spacing="1">
                         <TextBlock FontWeight="SemiBold" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
@@ -121,7 +142,7 @@
                         <TextBlock Text="{Binding PullRequestBadge}" />
                       </Border>
                       <TextBlock Grid.Column="2" Classes="caption" Text="no PR yet" VerticalAlignment="Center" IsVisible="{Binding HasNoPullRequest}" />
-                      <Border Grid.Column="3" Classes="restack-badge" IsVisible="{Binding NeedsRestack}">
+                      <Border Grid.Column="3" Classes="restack-badge" IsVisible="{Binding ShowsRestack}">
                         <TextBlock FontSize="11" Foreground="{DynamicResource WarningTextBrush}" Text="{Binding RestackText}" />
                       </Border>
                       <Button Grid.Column="4" Classes="link" Content="Switch" Command="{Binding SwitchCommand}" IsVisible="{Binding IsNotCurrent}" VerticalAlignment="Center" />
