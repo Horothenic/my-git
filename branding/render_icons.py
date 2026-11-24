@@ -1,9 +1,9 @@
 """
 Renders the My Git icon (crest shield + symmetric "Y merge" commit glyph)
-to SVG, PNG and a multi-size Windows .ico.
+to SVG, PNG, a multi-size Windows .ico and a macOS .icns.
 
 Usage:  python render_icons.py
-Output: svg/, png/ and my-git.ico next to this script.
+Output: svg/, png/, my-git.ico and my-git.icns next to this script.
 
 Everything is defined on a 120 x 120 grid, the same grid the SVGs use.
 Three detail tiers keep the icon crisp at every size:
@@ -14,7 +14,7 @@ Three detail tiers keep the icon crisp at every size:
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).parent
 BACKGROUND = "#161615"
@@ -52,6 +52,11 @@ TIERS = {
 }
 
 PNG_SIZES = [16, 20, 24, 32, 40, 48, 64, 128, 256, 512, 1024]
+
+# macOS icons follow Apple's grid: the rounded square takes 824 of 1024 px, centred, with a soft shadow,
+# so it lines up with every other icon in the Dock (an edge-to-edge square looks too big there).
+MAC_BODY = 824 / 1024
+MAC_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 256]
 
 
@@ -148,6 +153,23 @@ def render(size: int, background: bool = True, color: str = FOREGROUND) -> Image
     return canvas.resize((size, size), Image.LANCZOS)
 
 
+def render_mac(size: int) -> Image.Image:
+    """The icon on Apple's grid: inset rounded square plus a soft drop shadow."""
+    body = round(size * MAC_BODY)
+    icon = render(body)
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    offset = ((size - body) // 2, (size - body) // 2)
+
+    if size >= 64:
+        shadow = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        mask = icon.getchannel("A").point(lambda alpha: alpha * 0.35)
+        shadow.paste((0, 0, 0, 255), (offset[0], offset[1] + round(size * 0.012)), mask)
+        canvas.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(size * 0.012)))
+
+    canvas.alpha_composite(icon, offset)
+    return canvas
+
+
 def fmt(value: float) -> str:
     return f"{value:.2f}".rstrip("0").rstrip(".")
 
@@ -208,6 +230,11 @@ def main():
         append_images=[images[s] for s in ICO_SIZES if s != max(ICO_SIZES)],
     )
 
+    # macOS .icns: each size rendered on Apple's grid (smaller sizes use the thicker tiers).
+    mac = {size: render_mac(size) for size in MAC_SIZES}
+    mac[1024].save(ROOT / "my-git.icns", append_images=[mac[s] for s in MAC_SIZES if s != 1024])
+    mac[1024].save(ROOT / "png" / "my-git-mac-1024.png")
+
     # Outline-only title bar icons: white for dark title bars, black for light ones.
     for name, color in OUTLINE_COLORS.items():
         outline = {size: render(size, background=False, color=color) for size in OUTLINE_ICO_SIZES}
@@ -224,7 +251,7 @@ def main():
         sheet.alpha_composite(images[size], (x, 270 - size))
         x += size + 12
     sheet.save(ROOT / "png" / "contact-sheet.png")
-    print("Wrote svg/, png/, my-git.ico and the outline .ico files")
+    print("Wrote svg/, png/, my-git.ico, my-git.icns and the outline .ico files")
 
 
 if __name__ == "__main__":

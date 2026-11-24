@@ -46,13 +46,14 @@ jobs:
       - name: Publish for Apple Silicon
         run: dotnet publish src/MyGit.App/MyGit.App.csproj --configuration Release --runtime osx-arm64 --self-contained --output publish
 
-      # A Mac app is a folder: My Git.app/Contents/{Info.plist, MacOS/<the app>}.
+      # A Mac app is a folder: My Git.app/Contents/{Info.plist, MacOS/<the app>, Resources/<the icon>}.
       - name: Make My Git.app
         run: |
           app="My Git.app"
           mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
           cp -R publish/. "$app/Contents/MacOS/"
           sed "s/VERSION/0.0.0/g" build/macos/Info.plist > "$app/Contents/Info.plist"
+          cp branding/my-git.icns "$app/Contents/Resources/MyGit.icns"
           chmod +x "$app/Contents/MacOS/MyGit"
           # Apple Silicon only runs signed code; an ad-hoc signature is enough on your own Mac.
           codesign --force --deep --sign - "$app"

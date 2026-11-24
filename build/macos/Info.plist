@@ -11,6 +11,8 @@
   <string>com.horothenic.mygit</string>
   <key>CFBundleExecutable</key>
   <string>MyGit</string>
+  <key>CFBundleIconFile</key>
+  <string>MyGit</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleVersion</key>
