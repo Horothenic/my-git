@@ -264,7 +264,9 @@
           </DockPanel>
         </Border>
 
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="520" Margin="24">
+        <Panel>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="520" Margin="24"
+                    IsVisible="{Binding !Resolver.IsActive}">
           <mi:MaterialIcon Kind="SourceMerge" Width="32" Height="32" Foreground="{DynamicResource TextMutedBrush}" />
           <TextBlock Classes="caption" FontSize="13" TextWrapping="Wrap" TextAlignment="Center" IsVisible="{Binding IsNotRunningTool}"
                      Text="This file was changed on both sides. Keep one side with the buttons above, resolve it in a merge tool, or open it in your editor and then Mark resolved." />
@@ -272,6 +274,59 @@
           <TextBlock Classes="caption" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding OursExplanation}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding TheirsExplanation}" />
         </StackPanel>
+        <!-- Built-in resolver: both sides of the current conflict, the choice bar, and the editable result -->
+        <Grid RowDefinitions="Auto,Auto,*,Auto" IsVisible="{Binding Resolver.IsActive}">
+          <Grid Grid.Row="0" ColumnDefinitions="*,1,*" MinHeight="90" MaxHeight="220">
+            <DockPanel Grid.Column="0">
+              <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6" Text="{Binding Resolver.OursLabel}" TextTrimming="CharacterEllipsis" />
+              <ScrollViewer>
+                <SelectableTextBlock Classes="conflict-side ours" Text="{Binding Resolver.CurrentOursText}" />
+              </ScrollViewer>
+            </DockPanel>
+            <Border Grid.Column="1" Background="{DynamicResource BorderBrush}" />
+            <DockPanel Grid.Column="2">
+              <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6" Text="{Binding Resolver.TheirsLabel}" TextTrimming="CharacterEllipsis" />
+              <ScrollViewer>
+                <SelectableTextBlock Classes="conflict-side theirs" Text="{Binding Resolver.CurrentTheirsText}" />
+              </ScrollViewer>
+            </DockPanel>
+          </Grid>
+
+          <Border Grid.Row="1" Classes="selection-bar" BorderThickness="0,1,0,1">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
+                <Button Classes="header-button" Content="{Binding Resolver.TakeOursText}" Command="{Binding Resolver.TakeOursCommand}" />
+                <Button Classes="header-button" Content="{Binding Resolver.TakeTheirsText}" Command="{Binding Resolver.TakeTheirsCommand}" />
+                <Button Classes="header-button" Content="Take both" Command="{Binding Resolver.TakeBothCommand}"
+                        ToolTip.Tip="Keep both: the left side's lines first, then the right side's" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button Classes="header-button" Command="{Binding Resolver.PreviousCommand}" ToolTip.Tip="Previous conflict">
+                  <mi:MaterialIcon Kind="ChevronUp" Width="14" Height="14" />
+                </Button>
+                <Button Classes="header-button" Command="{Binding Resolver.NextCommand}" ToolTip.Tip="Next conflict">
+                  <mi:MaterialIcon Kind="ChevronDown" Width="14" Height="14" />
+                </Button>
+                <TextBlock Text="{Binding Resolver.PositionText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+              </StackPanel>
+            </DockPanel>
+          </Border>
+
+          <DockPanel Grid.Row="2">
+            <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6"
+                       Text="Result (what will be saved). You can edit it; taking a side rebuilds it from your choices." />
+            <TextBox Classes="conflict-result" Text="{Binding Resolver.ResultText}" AcceptsReturn="True" AcceptsTab="True" />
+          </DockPanel>
+
+          <Border Grid.Row="3" Classes="selection-bar">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Classes="accent" Content="Save and mark resolved" Command="{Binding Resolver.SaveCommand}" />
+              <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap"
+                         Text="Undecided conflicts keep their markers, and the file stays under Conflicts until they're gone." />
+            </DockPanel>
+          </Border>
+        </Grid>
+        </Panel>
       </DockPanel>
 
       <GridSplitter Grid.Row="2" ResizeDirection="Rows" Classes="thin" />

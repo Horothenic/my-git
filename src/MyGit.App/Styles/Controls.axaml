@@ -358,6 +358,27 @@
     <Setter Property="Padding" Value="12,6" />
   </Style>
 
+  <!-- Built-in conflict resolver -->
+  <Style Selector="SelectableTextBlock.conflict-side">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="10,6" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="SelectableTextBlock.conflict-side.ours">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+  </Style>
+  <Style Selector="SelectableTextBlock.conflict-side.theirs">
+    <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
+  </Style>
+  <Style Selector="TextBox.conflict-result">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="TextWrapping" Value="NoWrap" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
   <!-- Conflicts header -->
   <Style Selector="Border.conflicts-header">
     <Setter Property="Background" Value="{DynamicResource DiffRemovedBrush}" />
