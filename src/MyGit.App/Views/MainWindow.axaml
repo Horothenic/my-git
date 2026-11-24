@@ -219,13 +219,18 @@
                                   <MenuItem Header="Delete…" Command="{Binding DeleteCommand}" IsEnabled="{Binding IsNotCurrent}" />
                                 </ContextMenu>
                               </Button.ContextMenu>
-                              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
                                 <Panel Grid.Column="0" Width="16">
                                   <mi:MaterialIcon Kind="Check" Width="16" Height="16" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding IsCurrent}" />
                                   <mi:MaterialIcon Kind="SourceBranch" Width="16" Height="16" IsVisible="{Binding IsNotCurrent}" />
                                 </Panel>
                                 <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="2" Classes="caption" Text="{Binding TrackingText}" VerticalAlignment="Center" />
+                                <Border Grid.Column="2" Classes="pr-badge" IsVisible="{Binding HasPullRequest}"
+                                        Classes.open="{Binding IsPullRequestOpen}" Classes.draft="{Binding IsPullRequestDraft}"
+                                        Classes.merged="{Binding IsPullRequestMerged}" Classes.closed="{Binding IsPullRequestClosed}">
+                                  <TextBlock Text="{Binding PullRequestBadge}" />
+                                </Border>
+                                <TextBlock Grid.Column="3" Classes="caption" Text="{Binding TrackingText}" VerticalAlignment="Center" />
                               </Grid>
                             </Button>
                           </DataTemplate>
@@ -330,6 +335,26 @@
               <mi:MaterialIcon Kind="Loading" Width="18" Height="18" Classes="spin" IsVisible="{Binding Sync.IsPushing}"
                                Foreground="{DynamicResource AccentBrush}" />
               <TextBlock Text="Publish" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+
+          <!-- Pull request: "Create PR" (pushes first), or "PR #12" for the branch's pull request -->
+          <Button Classes="toolbar-icon pr-button" Width="NaN" Padding="12,0" Command="{Binding PullRequests.MainCommand}"
+                  IsVisible="{Binding PullRequests.IsAvailable}" AutomationProperties.Name="Pull request"
+                  Classes.open="{Binding PullRequests.IsOpen}" Classes.draft="{Binding PullRequests.IsDraft}"
+                  Classes.merged="{Binding PullRequests.IsMerged}" Classes.closed="{Binding PullRequests.IsClosed}"
+                  ToolTip.Tip="{Binding PullRequests.ToolTip}">
+            <Button.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Open on GitHub" Command="{Binding PullRequests.OpenCommand}" />
+                <MenuItem Header="Create pull request…" Command="{Binding PullRequests.CreateCommand}" />
+              </ContextMenu>
+            </Button.ContextMenu>
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <mi:MaterialIcon Kind="SourcePull" Width="18" Height="18" IsVisible="{Binding !PullRequests.IsBusy}" />
+              <mi:MaterialIcon Kind="Loading" Width="18" Height="18" Classes="spin" IsVisible="{Binding PullRequests.IsBusy}"
+                               Foreground="{DynamicResource AccentBrush}" />
+              <TextBlock Text="{Binding PullRequests.ButtonText}" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
         </StackPanel>

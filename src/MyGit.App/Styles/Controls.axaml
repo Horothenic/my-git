@@ -350,6 +350,42 @@
     </Style.Animations>
   </Style>
 
+  <!-- Pull request button and badges: green open, gray draft, purple merged, red closed -->
+  <Style Selector="Button.pr-button.open">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+  <Style Selector="Border.pr-badge.open TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+  </Style>
+  <Style Selector="Button.pr-button.draft">
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.pr-badge.draft TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Button.pr-button.merged">
+    <Setter Property="Foreground" Value="{DynamicResource MergedBrush}" />
+  </Style>
+  <Style Selector="Border.pr-badge.merged TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource MergedBrush}" />
+  </Style>
+  <Style Selector="Button.pr-button.closed">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="Border.pr-badge.closed TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
+  <Style Selector="Border.pr-badge">
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.pr-badge TextBlock">
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
   <!-- Status bar at the bottom: a stopped rebase / merge / cherry-pick / revert, and messages -->
   <Style Selector="Border.status-bar">
     <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />

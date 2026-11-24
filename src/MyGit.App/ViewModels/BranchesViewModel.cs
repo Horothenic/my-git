@@ -47,6 +47,24 @@ public sealed partial class LocalBranchItemViewModel(LocalBranch branch, Branche
 
     public string FastForwardText => $"Fast-forward {Name} (↓{Branch.Behind})";
 
+    /// <summary>The branch's pull request on GitHub, if any (set when the list loads).</summary>
+    public MyGit.GitHub.PullRequests.PullRequestInfo? PullRequest { get; init; }
+
+    public bool HasPullRequest => PullRequest is not null;
+
+    /// <summary>e.g. "#12 open", "#9 merged · can delete".</summary>
+    public string PullRequestBadge => PullRequest is null ? string.Empty
+        : PullRequest.State == MyGit.GitHub.PullRequests.PullRequestState.Merged && !IsCurrent ? $"{PullRequest.Badge} · can delete"
+        : PullRequest.Badge;
+
+    public bool IsPullRequestOpen => PullRequest?.State == MyGit.GitHub.PullRequests.PullRequestState.Open;
+
+    public bool IsPullRequestDraft => PullRequest?.State == MyGit.GitHub.PullRequests.PullRequestState.Draft;
+
+    public bool IsPullRequestMerged => PullRequest?.State == MyGit.GitHub.PullRequests.PullRequestState.Merged;
+
+    public bool IsPullRequestClosed => PullRequest?.State == MyGit.GitHub.PullRequests.PullRequestState.Closed;
+
     /// <summary>"↑1 ↓4", "not published", "deleted on GitHub", or "" when in sync.</summary>
     public string TrackingText =>
         Branch.Upstream is null ? "not published" :
@@ -291,6 +309,16 @@ public sealed partial class BranchesViewModel : ObservableObject
         });
     }
 
+    private IReadOnlyDictionary<string, MyGit.GitHub.PullRequests.PullRequestInfo> _pullRequests =
+        new Dictionary<string, MyGit.GitHub.PullRequests.PullRequestInfo>();
+
+    /// <summary>Shows each branch's pull request (after GitHub was asked).</summary>
+    public void ApplyPullRequests(IReadOnlyDictionary<string, MyGit.GitHub.PullRequests.PullRequestInfo> pullRequests)
+    {
+        _pullRequests = pullRequests;
+        ApplyFilter();
+    }
+
     private void ApplyFilter()
     {
         Local.Clear();
@@ -303,6 +331,7 @@ public sealed partial class BranchesViewModel : ObservableObject
             {
                 RebaseText = current is null ? "Rebase onto this…" : $"Rebase {current} onto {branch.Name}…",
                 InteractiveRebaseText = current is null ? "Interactively rebase onto this…" : $"Interactively rebase {current} onto {branch.Name}…",
+                PullRequest = _pullRequests.GetValueOrDefault(branch.Name),
             });
         }
 

@@ -31,7 +31,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         History.HistoryViewModel history,
         BranchesViewModel branches,
         UndoViewModel undo,
-        OperationViewModel operation)
+        OperationViewModel operation,
+        PullRequests.PullRequestsViewModel pullRequests)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -44,6 +45,12 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Branches = branches;
         Undo = undo;
         Operation = operation;
+        PullRequests = pullRequests;
+        PullRequests.EnsurePushed = Sync.EnsurePushedAsync;
+        PullRequests.PullRequestsChanged += Branches.ApplyPullRequests;
+        PullRequests.NoticeRaised += Sync.ShowNotice;
+        PullRequests.MessageRaised += ShowMessage;
+        Sync.RemoteUpdated += () => PullRequests.RefreshAsync(CurrentRepository?.Path, Changes.BranchName.Length > 0 ? Changes.BranchName : null, askGitHub: true);
         Operation.MessageRaised += ShowMessage;
         Operation.NoticeRaised += Sync.ShowNotice;
         Operation.RepositoryChanged += RefreshAsync;
@@ -112,6 +119,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     public partial string BranchName { get; set; } = "—";
 
+    /// <summary>The pull request button in the toolbar.</summary>
+    public PullRequests.PullRequestsViewModel PullRequests { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMessage), nameof(IsStatusBarVisible))]
     public partial string? Message { get; set; }
@@ -176,6 +186,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             }
             Operation.ConflictCount = Changes.ConflictCount;
             History.CurrentBranch = branch;
+            await PullRequests.RefreshAsync(CurrentRepository.Path, branch, askGitHub: branch != PullRequests.Branch);
             await Changes.RefreshAsync();
         }
         catch (GitCommandException exception)
@@ -228,6 +239,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _ = History.RefreshAsync(null);
         _ = Undo.RefreshAsync(null);
         _ = Operation.RefreshAsync(null);
+        _ = PullRequests.RefreshAsync(null, null);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;

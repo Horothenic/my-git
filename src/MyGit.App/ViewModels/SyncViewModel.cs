@@ -37,6 +37,25 @@ public sealed partial class SyncViewModel : ObservableObject
     /// <summary>Raised with an error for the status bar.</summary>
     public event Action<string>? MessageRaised;
 
+    /// <summary>Raised after a fetch, pull or push talked to GitHub (pull requests may have changed too).</summary>
+    public event Func<Task>? RemoteUpdated;
+
+    /// <summary>
+    /// Publishes or pushes the current branch if GitHub doesn't have all of it (for "Create PR").
+    /// Returns true when GitHub has every commit afterwards.
+    /// </summary>
+    public async Task<bool> EnsurePushedAsync()
+    {
+        await RefreshAsync(_repositoryPath);
+        if (NeedsPublish || CommitsToPush > 0)
+        {
+            await PushWithAsync(force: false);
+            await RefreshAsync(_repositoryPath);
+        }
+
+        return Tracking.Upstream is not null && Tracking.Ahead == 0;
+    }
+
     /// <summary>Raised after a pull or push changed the repository, so the rest of the window refreshes.</summary>
     public event Func<Task>? RepositoryChanged;
 
@@ -270,6 +289,11 @@ public sealed partial class SyncViewModel : ObservableObject
         finally
         {
             Running = SyncOperation.None;
+        }
+
+        if (RemoteUpdated is { } remoteUpdated)
+        {
+            await remoteUpdated();
         }
     }
 

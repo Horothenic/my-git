@@ -26,6 +26,9 @@ public interface IDialogService
     /// <summary>Shows the interactive rebase window. Returns true when the user pressed Start.</summary>
     Task<bool> ShowInteractiveRebaseAsync(ViewModels.Rebase.InteractiveRebaseViewModel viewModel);
 
+    /// <summary>Shows the Create pull request dialog. Returns true when GitHub created it.</summary>
+    Task<bool> ShowCreatePullRequestAsync(ViewModels.PullRequests.CreatePullRequestViewModel viewModel);
+
     /// <summary>Asks how far to reset (soft / mixed / hard). Returns null when cancelled.</summary>
     Task<MyGit.Core.History.ResetMode?> AskResetAsync(string branch, string shortSha, int commitsUndone);
 }
