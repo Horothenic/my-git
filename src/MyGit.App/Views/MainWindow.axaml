@@ -328,18 +328,17 @@
             <mi:MaterialIcon Kind="UndoVariant" Width="20" Height="20" />
           </Button>
 
-          <Button Classes="toolbar-icon" Width="NaN" Padding="12,0" Command="{Binding Sync.PushCommand}"
+          <Button Classes="toolbar-icon" Command="{Binding Sync.PushCommand}" AutomationProperties.Name="Publish"
                   IsVisible="{Binding Sync.NeedsPublish}" ToolTip.Tip="{Binding Sync.PushToolTip}">
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <mi:MaterialIcon Kind="CloudUploadOutline" Width="18" Height="18" IsVisible="{Binding !Sync.IsPushing}" />
-              <mi:MaterialIcon Kind="Loading" Width="18" Height="18" Classes="spin" IsVisible="{Binding Sync.IsPushing}"
+            <Panel>
+              <mi:MaterialIcon Kind="CloudUploadOutline" Width="20" Height="20" IsVisible="{Binding !Sync.IsPushing}" />
+              <mi:MaterialIcon Kind="Loading" Width="20" Height="20" Classes="spin" IsVisible="{Binding Sync.IsPushing}"
                                Foreground="{DynamicResource AccentBrush}" />
-              <TextBlock Text="Publish" VerticalAlignment="Center" />
-            </StackPanel>
+            </Panel>
           </Button>
 
-          <!-- Pull request: "Create PR" (pushes first), or "PR #12" for the branch's pull request -->
-          <Button Classes="toolbar-icon pr-button" Width="NaN" Padding="12,0" Command="{Binding PullRequests.MainCommand}"
+          <!-- Pull request: create one (pushes first), or open the branch's pull request -->
+          <Button Classes="toolbar-icon pr-button" Command="{Binding PullRequests.MainCommand}"
                   IsVisible="{Binding PullRequests.IsAvailable}" AutomationProperties.Name="Pull request"
                   Classes.open="{Binding PullRequests.IsOpen}" Classes.draft="{Binding PullRequests.IsDraft}"
                   Classes.merged="{Binding PullRequests.IsMerged}" Classes.closed="{Binding PullRequests.IsClosed}"
@@ -350,12 +349,12 @@
                 <MenuItem Header="Create pull request…" Command="{Binding PullRequests.CreateCommand}" />
               </ContextMenu>
             </Button.ContextMenu>
-            <StackPanel Orientation="Horizontal" Spacing="6">
-              <mi:MaterialIcon Kind="SourcePull" Width="18" Height="18" IsVisible="{Binding !PullRequests.IsBusy}" />
-              <mi:MaterialIcon Kind="Loading" Width="18" Height="18" Classes="spin" IsVisible="{Binding PullRequests.IsBusy}"
+            <!-- Plain icon: no PR yet. Colored by state (green open, gray draft, purple merged, red closed) once there is one. -->
+            <Panel>
+              <mi:MaterialIcon Kind="SourcePull" Width="20" Height="20" IsVisible="{Binding !PullRequests.IsBusy}" />
+              <mi:MaterialIcon Kind="Loading" Width="20" Height="20" Classes="spin" IsVisible="{Binding PullRequests.IsBusy}"
                                Foreground="{DynamicResource AccentBrush}" />
-              <TextBlock Text="{Binding PullRequests.ButtonText}" VerticalAlignment="Center" />
-            </StackPanel>
+            </Panel>
           </Button>
         </StackPanel>
       </DockPanel>

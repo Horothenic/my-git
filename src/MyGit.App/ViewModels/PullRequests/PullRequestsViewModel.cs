@@ -8,8 +8,8 @@ using MyGit.GitHub.PullRequests;
 namespace MyGit.App.ViewModels.PullRequests;
 
 /// <summary>
-/// The pull request button in the toolbar: "Create PR" (pushes first, then opens the dialog),
-/// or "PR #12" for the branch's pull request (opens it on GitHub).
+/// The pull request button in the toolbar: creates a pull request (pushes first, then opens the dialog),
+/// or opens the branch's pull request on GitHub (the icon is then colored by its state).
 /// GitHub is asked on open, branch switch, fetch, push and after creating; never in the background.
 /// </summary>
 public sealed partial class PullRequestsViewModel : ObservableObject
@@ -52,7 +52,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject
 
     /// <summary>The current branch's pull request, if it has one.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPullRequest), nameof(ButtonText), nameof(ToolTip), nameof(IsOpen), nameof(IsDraft), nameof(IsMerged), nameof(IsClosed))]
+    [NotifyPropertyChangedFor(nameof(HasPullRequest), nameof(ToolTip), nameof(IsOpen), nameof(IsDraft), nameof(IsMerged), nameof(IsClosed))]
     [NotifyCanExecuteChangedFor(nameof(OpenCommand), nameof(CreateCommand))]
     public partial PullRequestInfo? Current { get; set; }
 
@@ -77,10 +77,8 @@ public sealed partial class PullRequestsViewModel : ObservableObject
 
     public bool IsClosed => Current?.State == PullRequestState.Closed;
 
-    public string ButtonText => Current is null ? "Create PR" : $"PR #{Current.Number}";
-
     public string ToolTip => Current is { } pullRequest
-        ? $"#{pullRequest.Number} {pullRequest.Title} ({pullRequest.State.ToString().ToLowerInvariant()}). Click to open it on GitHub."
+        ? $"Pull request #{pullRequest.Number} ({pullRequest.State.ToString().ToLowerInvariant()}): {pullRequest.Title}. Click to open it on GitHub."
         : !_pullRequests.IsSignedIn
             ? "Sign in to GitHub to create pull requests"
             : $"Create a pull request for {Branch} (pushes it first if needed)";
@@ -197,7 +195,7 @@ public sealed partial class PullRequestsViewModel : ObservableObject
                 return;
             }
 
-            NoticeRaised?.Invoke($"Created pull request #{created.Number}. Click PR #{created.Number} to open it on GitHub.");
+            NoticeRaised?.Invoke($"Created pull request #{created.Number}. The pull request button opens it on GitHub.");
             await RefreshAsync(repositoryPath, head, askGitHub: true);
             Current ??= created; // GitHub's list can lag a moment behind
         }
