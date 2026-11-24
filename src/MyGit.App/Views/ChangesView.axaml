@@ -37,7 +37,9 @@
   <Grid ColumnDefinitions="320,4,*">
 
     <!-- ===== Left: Unstaged and Staged trees ===== -->
-    <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,4,Auto,*,Auto">
+    <!-- The splitter (row 3) sits between the two file lists, so dragging it resizes only them:
+         the Staged header lives in the same row as its list. -->
+    <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,4,*,Auto">
 
       <!-- Conflicts: only while a rebase, merge, cherry-pick or revert is stopped -->
       <StackPanel Grid.Row="0" IsVisible="{Binding HasConflicts}">
@@ -116,36 +118,38 @@
 
       <GridSplitter Grid.Row="3" ResizeDirection="Rows" Classes="thin" />
 
-      <!-- Staged header -->
-      <Border Grid.Row="4" Classes="list-header">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Classes="header-button" Content="Unstage all" Command="{Binding UnstageAllCommand}" />
-          <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-            <TextBlock FontWeight="SemiBold" Text="Staged" />
-            <TextBlock Classes="caption" Text="{Binding StagedCount}" VerticalAlignment="Center" />
-          </StackPanel>
-        </DockPanel>
-      </Border>
+      <!-- Staged: header and list -->
+      <DockPanel Grid.Row="4">
+        <Border DockPanel.Dock="Top" Classes="list-header">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="header-button" Content="Unstage all" Command="{Binding UnstageAllCommand}" />
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <TextBlock FontWeight="SemiBold" Text="Staged" />
+              <TextBlock Classes="caption" Text="{Binding StagedCount}" VerticalAlignment="Center" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
 
-      <Panel Grid.Row="5">
-        <TreeView x:Name="StagedTree" Classes="files" SelectionMode="Multiple"
-                  ItemsSource="{Binding Staged.Roots}" ItemTemplate="{StaticResource FileNodeTemplate}">
-          <TreeView.ContextMenu>
-            <ContextMenu>
-              <MenuItem x:Name="StagedUnstageItem" Header="Unstage" InputGesture="Enter" />
-              <Separator />
-              <MenuItem x:Name="StagedOpenItem" Header="Open in editor" />
-              <MenuItem x:Name="StagedExplorerItem" Header="Show in Explorer" />
-              <MenuItem x:Name="StagedCopyItem" Header="Copy path" />
-            </ContextMenu>
-          </TreeView.ContextMenu>
-        </TreeView>
-        <TextBlock Classes="caption" Text="Select files above and press Enter to stage them." IsVisible="{Binding IsStagedEmpty}"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="16" />
-      </Panel>
+        <Panel>
+          <TreeView x:Name="StagedTree" Classes="files" SelectionMode="Multiple"
+                    ItemsSource="{Binding Staged.Roots}" ItemTemplate="{StaticResource FileNodeTemplate}">
+            <TreeView.ContextMenu>
+              <ContextMenu>
+                <MenuItem x:Name="StagedUnstageItem" Header="Unstage" InputGesture="Enter" />
+                <Separator />
+                <MenuItem x:Name="StagedOpenItem" Header="Open in editor" />
+                <MenuItem x:Name="StagedExplorerItem" Header="Show in Explorer" />
+                <MenuItem x:Name="StagedCopyItem" Header="Copy path" />
+              </ContextMenu>
+            </TreeView.ContextMenu>
+          </TreeView>
+          <TextBlock Classes="caption" Text="Select files above and press Enter to stage them." IsVisible="{Binding IsStagedEmpty}"
+                     HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="16" />
+        </Panel>
+      </DockPanel>
 
       <!-- Stashes: changes put aside. Select one to see its files; right-click to apply, pop or delete. -->
-      <StackPanel Grid.Row="6" IsVisible="{Binding HasStashes}">
+      <StackPanel Grid.Row="5" IsVisible="{Binding HasStashes}">
         <Border Classes="list-header" BorderThickness="0,1,0,1">
           <DockPanel>
             <ToggleButton DockPanel.Dock="Left" Classes="expander-toggle" IsChecked="{Binding IsStashesExpanded}" Margin="0,0,6,0">
