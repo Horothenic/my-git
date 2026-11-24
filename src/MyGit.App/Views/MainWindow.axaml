@@ -345,40 +345,33 @@
       </StackPanel>
     </Border>
 
-    <!-- ===== Operation banner: a stopped rebase / merge / cherry-pick / revert ===== -->
-    <Border DockPanel.Dock="Top" IsVisible="{Binding Operation.IsActive}" Classes="operation-banner">
+    <!-- ===== Status bar (bottom, one line): a stopped rebase / merge / cherry-pick / revert, and messages ===== -->
+    <Border DockPanel.Dock="Bottom" Classes="status-bar" IsVisible="{Binding IsStatusBarVisible}">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-          <Button Classes="header-button" Content="Abort" Command="{Binding Operation.AbortCommand}"
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding Operation.IsActive}" Margin="12,0,0,0">
+          <Button Classes="status-button" Content="Abort" Command="{Binding Operation.AbortCommand}"
                   ToolTip.Tip="Cancel it and put everything back as it was" />
-          <Button Classes="header-button" Content="Skip this commit" Command="{Binding Operation.SkipCommand}"
+          <Button Classes="status-button" Content="Skip this commit" Command="{Binding Operation.SkipCommand}"
                   IsVisible="{Binding Operation.CanSkip}" ToolTip.Tip="Drop this commit's changes and go on" />
-          <Button Classes="accent" Content="Continue" Command="{Binding Operation.ContinueCommand}" Padding="12,3"
+          <Button Classes="accent status-button" Content="Continue" Command="{Binding Operation.ContinueCommand}"
                   ToolTip.ShowOnDisabled="True" ToolTip.Tip="Available once every conflict is resolved" />
         </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <mi:MaterialIcon Kind="SourceBranchSync" Width="16" Height="16" Foreground="{DynamicResource WarningTextBrush}" />
-          <TextBlock Text="{Binding Operation.Title}" FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" />
-          <TextBlock Text="{Binding Operation.Details}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
-                     TextTrimming="CharacterEllipsis" />
-        </StackPanel>
-      </DockPanel>
-    </Border>
 
-    <!-- ===== Message bar ===== -->
-    <Border DockPanel.Dock="Top"
-            IsVisible="{Binding HasMessage}"
-            Background="{DynamicResource WarningBackgroundBrush}"
-            Padding="12,8">
-      <DockPanel>
-        <Button DockPanel.Dock="Right" Padding="4" Background="Transparent"
-                Command="{Binding DismissMessageCommand}" ToolTip.Tip="Dismiss">
-          <mi:MaterialIcon Kind="Close" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
-        </Button>
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <mi:MaterialIcon Kind="AlertOutline" Width="16" Height="16" Foreground="{DynamicResource WarningTextBrush}" />
-          <TextBlock Text="{Binding Message}" Foreground="{DynamicResource WarningTextBrush}"
-                     TextWrapping="Wrap" VerticalAlignment="Center" />
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding Operation.IsActive}">
+          <mi:MaterialIcon Kind="SourceBranchSync" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
+          <TextBlock Text="{Binding Operation.Title}" FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding Operation.Details}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- The latest message, after the operation (or alone), with × to dismiss -->
+        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding HasMessage}" Margin="16,0,0,0">
+          <mi:MaterialIcon Kind="AlertOutline" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
+          <TextBlock Text="{Binding Message}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Message}" />
+          <Button Padding="3" Background="Transparent" VerticalAlignment="Center"
+                  Command="{Binding DismissMessageCommand}" ToolTip.Tip="Dismiss">
+            <mi:MaterialIcon Kind="Close" Width="12" Height="12" Foreground="{DynamicResource WarningTextBrush}" />
+          </Button>
         </StackPanel>
       </DockPanel>
     </Border>

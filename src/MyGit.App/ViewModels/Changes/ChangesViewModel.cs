@@ -182,8 +182,7 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         }
 
         var labels = (Ours: OursLabel, Theirs: TheirsLabel);
-        Resolver.Load(parsed, labels.Ours, labels.Theirs, UseOursText.Replace("Use", "Take"), UseTheirsText.Replace("Use", "Take"),
-            result => SaveResolvedAsync(conflict, fullPath, result));
+        Resolver.Load(parsed, labels.Ours, labels.Theirs, result => SaveResolvedAsync(conflict, fullPath, result));
     }
 
     private async Task SaveResolvedAsync(FileChange conflict, string fullPath, string result)

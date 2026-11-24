@@ -50,6 +50,16 @@ public sealed partial class ChangesView : UserControl
 
         StashButton.Click += (_, _) => Run(vm => vm.StashAsync(Selection(UnstagedTree)));
 
+        // The resolver's ↑/↓ (and each choice) scroll to the conflict they land on.
+        DataContextChanged += (_, _) =>
+        {
+            if (ViewModel is { } viewModel)
+            {
+                viewModel.Resolver.ScrollRequested -= ScrollToConflict;
+                viewModel.Resolver.ScrollRequested += ScrollToConflict;
+            }
+        };
+
         // A conflict takes over the right side; picking a normal file gives it back.
         UnstagedTree.SelectionChanged += (_, _) => { if (UnstagedTree.SelectedItems.Count > 0) { ConflictList.SelectedItem = null; } };
         StagedTree.SelectionChanged += (_, _) => { if (StagedTree.SelectedItems.Count > 0) { ConflictList.SelectedItem = null; } };
@@ -72,6 +82,9 @@ public sealed partial class ChangesView : UserControl
     }
 
     private ChangesViewModel? ViewModel => DataContext as ChangesViewModel;
+
+    private void ScrollToConflict(ConflictBlockViewModel block) =>
+        ResolverSegments.ContainerFromItem(block)?.BringIntoView();
 
     private static List<FileTreeNodeViewModel> Selection(TreeView tree) =>
         tree.SelectedItems.OfType<FileTreeNodeViewModel>().ToList();

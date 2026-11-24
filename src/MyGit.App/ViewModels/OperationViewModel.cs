@@ -8,7 +8,7 @@ using MyGit.Core.Operations;
 namespace MyGit.App.ViewModels;
 
 /// <summary>
-/// The yellow banner shown while a rebase, merge, cherry-pick or revert is stopped
+/// The status bar shown while a rebase, merge, cherry-pick or revert is stopped
 /// (Continue / Skip / Abort), and starting a rebase.
 /// </summary>
 public sealed partial class OperationViewModel : ObservableObject
@@ -224,7 +224,7 @@ public sealed partial class OperationViewModel : ObservableObject
                 NoticeRaised?.Invoke($"Rebased {branch}");
                 break;
             case RebaseOutcome.Stopped:
-                break; // the yellow bar says it stopped to change the commit, and what to do
+                break; // the status bar says it stopped to change the commit, and what to do
             case RebaseOutcome.Conflict:
                 MessageRaised?.Invoke("The rebase stopped on a conflict. Resolve the files under Conflicts in the Changes tab, then press Continue.");
                 break;
@@ -278,7 +278,7 @@ public sealed partial class OperationViewModel : ObservableObject
         {
             if (await step(kind) == ContinueOutcome.StoppedAgain)
             {
-                // An edit stop is explained by the yellow bar itself; a conflict needs a pointer to the files.
+                // An edit stop is explained by the status bar itself; a conflict needs a pointer to the files.
                 if (!(await _operations.GetStateAsync(repository)).IsEditStop)
                 {
                     MessageRaised?.Invoke("Stopped on another conflict. Resolve the files under Conflicts, then press Continue.");

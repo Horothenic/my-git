@@ -55,4 +55,11 @@
     </ResourceDictionary>
 
   </ResourceDictionary.ThemeDictionaries>
+
+  <!-- Conflict resolver, VS Code style: current change green, incoming change blue (see-through, so both themes work) -->
+  <SolidColorBrush x:Key="ConflictCurrentBrush" Color="#2E1D9E75" />
+  <SolidColorBrush x:Key="ConflictCurrentHeaderBrush" Color="#661D9E75" />
+  <SolidColorBrush x:Key="ConflictIncomingBrush" Color="#2E378ADD" />
+  <SolidColorBrush x:Key="ConflictIncomingHeaderBrush" Color="#66378ADD" />
+  <SolidColorBrush x:Key="ConflictResolvedBrush" Color="#1A888780" />
 </ResourceDictionary>
