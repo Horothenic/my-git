@@ -47,7 +47,12 @@
           <TextBlock Text="Stack a branch on top" />
         </StackPanel>
       </Button>
-      <TextBlock DockPanel.Dock="Top" Classes="caption" Text="Stacks" Margin="12,10,0,4" />
+      <DockPanel DockPanel.Dock="Top" Margin="12,6,8,2">
+        <Button DockPanel.Dock="Right" Classes="header-button" Command="{Binding NewStackCommand}" ToolTip.Tip="New stack from existing branches" AutomationProperties.Name="New stack">
+          <mi:MaterialIcon Kind="Plus" Width="14" Height="14" />
+        </Button>
+        <TextBlock Classes="caption" Text="Stacks" VerticalAlignment="Center" />
+      </DockPanel>
       <Panel>
         <ListBox ItemsSource="{Binding Stacks}" SelectedItem="{Binding SelectedStack}" Background="Transparent" IsVisible="{Binding HasStacks}">
           <ListBox.ItemTemplate>
@@ -60,7 +65,7 @@
           </ListBox.ItemTemplate>
         </ListBox>
         <TextBlock Classes="caption" Margin="14,8" TextWrapping="Wrap" IsVisible="{Binding HasNoStacks}"
-                   Text="No stacks yet. Stack a branch on top of the one you're on to start one: each branch's pull request then goes into the branch below it." />
+                   Text="No stacks yet. Press + to make one from branches you already have, or stack a new branch on top of the one you're on. Each branch's pull request goes into the branch below it." />
       </Panel>
     </DockPanel>
 

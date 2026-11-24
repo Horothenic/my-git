@@ -29,6 +29,9 @@ public interface IDialogService
     /// <summary>Shows the Create pull request dialog. Returns true when GitHub created it.</summary>
     Task<bool> ShowCreatePullRequestAsync(ViewModels.PullRequests.CreatePullRequestViewModel viewModel);
 
+    /// <summary>Shows "New stack from existing branches". Returns true when the user pressed Create stack.</summary>
+    Task<bool> ShowNewStackAsync(ViewModels.Stacks.NewStackViewModel viewModel);
+
     /// <summary>Asks how far to reset (soft / mixed / hard). Returns null when cancelled.</summary>
     Task<MyGit.Core.History.ResetMode?> AskResetAsync(string branch, string shortSha, int commitsUndone);
 }

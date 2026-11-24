@@ -58,6 +58,18 @@ public sealed partial class CreatePullRequestViewModel : ObservableObject
 
     public string Head { get; }
 
+    /// <summary>The dialog's heading, e.g. "Pull request 1 of 3: inventory-model" when creating a stack's PRs.</summary>
+    public string Heading { get; init; } = "Create pull request";
+
+    /// <summary>Creating a stack's PRs one by one: Skip goes on to the next one.</summary>
+    public bool CanSkip { get; init; }
+
+    /// <summary>Set when Skip was pressed.</summary>
+    public bool Skipped { get; private set; }
+
+    /// <summary>A stack's PR goes into the branch below; the base is only a choice for a single PR.</summary>
+    public bool CanChooseBase => Bases.Count > 1;
+
     public ObservableCollection<string> Bases { get; } = [];
 
     [ObservableProperty]
@@ -195,6 +207,13 @@ public sealed partial class CreatePullRequestViewModel : ObservableObject
 
     [RelayCommand]
     private void Cancel() => Finished?.Invoke();
+
+    [RelayCommand]
+    private void Skip()
+    {
+        Skipped = true;
+        Finished?.Invoke();
+    }
 
     private bool CanCreate() => !IsBusy && Title.Trim().Length > 0;
 

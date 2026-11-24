@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MyGit.App.ViewModels.Stacks"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        x:Class="MyGit.App.Views.NewStackWindow"
+        x:DataType="vm:NewStackViewModel"
+        Icon="/Assets/my-git.ico"
+        Title="New stack"
+        Width="580" SizeToContent="Height" MinWidth="460"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="22,18" Spacing="8">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <mi:MaterialIcon Kind="LayersOutline" Width="18" Height="18" />
+      <TextBlock FontWeight="SemiBold" FontSize="14" Text="New stack from existing branches" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Text="Top branch" VerticalAlignment="Center" />
+      <ComboBox ItemsSource="{Binding Branches}" SelectedItem="{Binding SelectedTop}" MinWidth="260" />
+    </StackPanel>
+
+    <TextBlock Classes="caption" TextWrapping="Wrap"
+               Text="Found below it, down to the trunk. Untick any that aren't part of this stack; use the arrows if the order is off." />
+
+    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+      <StackPanel>
+        <ItemsControl ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CandidateRowViewModel">
+              <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,4">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                  <CheckBox Grid.Column="0" IsChecked="{Binding IsIncluded}" IsEnabled="{Binding CanToggle}" MinWidth="0" />
+                  <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="2" Classes="caption" Text="{Binding Note}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2">
+                    <Button Classes="header-button" Command="{Binding MoveUpCommand}" ToolTip.Tip="Move up (higher in the stack)">
+                      <mi:MaterialIcon Kind="ChevronUp" Width="14" Height="14" />
+                    </Button>
+                    <Button Classes="header-button" Command="{Binding MoveDownCommand}" ToolTip.Tip="Move down (closer to the trunk)">
+                      <mi:MaterialIcon Kind="ChevronDown" Width="14" Height="14" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="12,6">
+          <mi:MaterialIcon Kind="SourceCommit" Width="16" Height="16" Foreground="{DynamicResource TextSecondaryBrush}" />
+          <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" Text="{Binding Trunk}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Classes="caption" Text="Also include" VerticalAlignment="Center" />
+      <ComboBox ItemsSource="{Binding Others}" SelectedItem="{Binding OtherToAdd}" MinWidth="220" PlaceholderText="another branch…" />
+    </StackPanel>
+
+    <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Summary}" />
+
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,6,0,0">
+      <Button Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+      <Button Classes="accent" Content="Create stack" Command="{Binding CreateCommand}" />
+    </StackPanel>
+  </StackPanel>
+</Window>

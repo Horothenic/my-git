@@ -13,13 +13,14 @@
   <StackPanel Margin="22,18" Spacing="6">
     <StackPanel Orientation="Horizontal" Spacing="8">
       <mi:MaterialIcon Kind="SourcePull" Width="18" Height="18" />
-      <TextBlock FontWeight="SemiBold" FontSize="14" Text="Create pull request" VerticalAlignment="Center" />
+      <TextBlock FontWeight="SemiBold" FontSize="14" Text="{Binding Heading}" VerticalAlignment="Center" />
     </StackPanel>
 
     <StackPanel Orientation="Horizontal" Spacing="8">
       <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Text="{Binding Head}" />
       <TextBlock Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" Text="into" />
-      <ComboBox ItemsSource="{Binding Bases}" SelectedItem="{Binding SelectedBase}" MinWidth="160" ToolTip.Tip="The branch to merge into" />
+      <ComboBox ItemsSource="{Binding Bases}" SelectedItem="{Binding SelectedBase}" MinWidth="160" ToolTip.Tip="The branch to merge into"
+                IsEnabled="{Binding CanChooseBase}" />
       <TextBlock Classes="caption" VerticalAlignment="Center" Text="{Binding CommitSummary}" />
     </StackPanel>
 
@@ -43,6 +44,7 @@
     <DockPanel Margin="0,8,0,0">
       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
         <Button Content="Cancel" Command="{Binding CancelCommand}" IsCancel="True" />
+        <Button Content="Skip" Command="{Binding SkipCommand}" IsVisible="{Binding CanSkip}" ToolTip.Tip="Don't create this one; go on to the next" />
         <Button Classes="accent" Content="Create pull request" Command="{Binding CreateCommand}" />
       </StackPanel>
       <CheckBox IsChecked="{Binding IsDraft}" Content="Create as draft" VerticalAlignment="Center" />

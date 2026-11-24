@@ -165,12 +165,12 @@ public sealed partial class StacksViewModel : ObservableObject
     public ObservableCollection<StackBranchViewModel> Branches { get; } = [];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RestackCommand), nameof(PushStackCommand), nameof(CreatePullRequestsCommand), nameof(StackOnTopCommand), nameof(SyncStackCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RestackCommand), nameof(PushStackCommand), nameof(CreatePullRequestsCommand), nameof(StackOnTopCommand), nameof(SyncStackCommand), nameof(NewStackCommand))]
     public partial bool IsBusy { get; set; }
 
     /// <summary>A rebase (or merge, ...) is stopped: stack actions wait for it.</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RestackCommand), nameof(PushStackCommand), nameof(CreatePullRequestsCommand), nameof(StackOnTopCommand), nameof(SyncStackCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RestackCommand), nameof(PushStackCommand), nameof(CreatePullRequestsCommand), nameof(StackOnTopCommand), nameof(SyncStackCommand), nameof(NewStackCommand))]
     public partial bool IsOperationActive { get; set; }
 
     /// <summary>How many branches at the bottom of the selected stack are merged on GitHub.</summary>
@@ -413,8 +413,9 @@ public sealed partial class StacksViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Creates the missing pull requests (each into the branch below it) and adds the stack list to every
-    /// PR's description. Pushes the stack first when GitHub doesn't have all of it.
+    /// Creates the missing pull requests one by one, bottom first, each in the usual dialog (into the branch below,
+    /// with the repo's template), then adds the stack list to every PR's description. Pushes the stack first when
+    /// GitHub doesn't have all of it.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanActOnSelection))]
     private async Task CreatePullRequestsAsync()
@@ -436,22 +437,15 @@ public sealed partial class StacksViewModel : ObservableObject
         }
 
         var missing = stack.Branches.Where(branch => _pullRequests.ByBranch.GetValueOrDefault(branch.Name)?.IsActive != true).ToList();
-        var plan = string.Join("\n", missing.Select(branch => $"• {branch.Name} into {branch.Parent}"));
-        var (confirmed, asDrafts) = await _dialogs.ConfirmWithOptionAsync(
-            missing.Count == 0 ? "Update the stack list in each pull request?" : $"Create {(missing.Count == 1 ? "1 pull request" : $"{missing.Count} pull requests")}?",
-            missing.Count == 0
-                ? "Every branch already has a pull request. This refreshes the stack list at the end of their descriptions."
-                : $"{plan}\n\nThe stack is pushed first if GitHub doesn't have all of it. Each description gets the repo's PR template (or the commit list) and the stack list.",
-            missing.Count == 0 ? "Update" : "Create",
-            "Create them as drafts",
-            optionDefault: false,
-            dangerous: false);
-
-        if (!confirmed)
+        if (missing.Count == 0 && !await _dialogs.ConfirmAsync(
+                "Update the stack list in each pull request?",
+                "Every branch already has a pull request. This refreshes the stack list at the end of their descriptions.",
+                "Update"))
         {
             return;
         }
 
+        // GitHub needs every branch before a PR can be opened from it.
         if (Branches.Any(branch => branch.NeedsPush) || stack.NeedsRestack)
         {
             await PushStackAsync(); // stopped on a conflict? It pushes after Continue; press Create PRs again then.
@@ -463,27 +457,48 @@ public sealed partial class StacksViewModel : ObservableObject
             stack = pushedStack;
         }
 
+        var created = new Dictionary<string, PullRequestInfo>(StringComparer.Ordinal);
+        var templates = await _drafts.FindTemplatesAsync(repository, $"origin/{_trunk}");
+        var position = 0;
+
+        foreach (var branch in missing)
+        {
+            position++;
+            var head = branch.Name;
+            var dialog = new CreatePullRequestViewModel(
+                head,
+                [branch.Parent],
+                branch.Parent,
+                loadDraft: async _ => (
+                    await _drafts.GetCommitSubjectsAsync(repository, branch.Parent == _trunk ? $"origin/{_trunk}" : branch.Parent),
+                    templates),
+                create: (@base, title, body, draft) => _pullRequestService.CreateAsync(gitHub, head, @base, title, body, draft))
+            {
+                Heading = missing.Count == 1 ? $"Pull request for {head}" : $"Pull request {position} of {missing.Count}: {head}",
+                CanSkip = missing.Count > 1,
+            };
+
+            await dialog.LoadAsync();
+            var made = await _dialogs.ShowCreatePullRequestAsync(dialog);
+            if (made && dialog.Created is { } pullRequest)
+            {
+                created[head] = pullRequest;
+            }
+            else if (!dialog.Skipped)
+            {
+                break; // Cancel stops here; the PRs made so far still get their stack list
+            }
+        }
+
         await RunAsync(async () =>
         {
-            var numbers = new List<int>();
-            var templates = await _drafts.FindTemplatesAsync(repository, $"origin/{_trunk}");
-
-            foreach (var branch in stack.Branches)
-            {
-                if (_pullRequests.ByBranch.GetValueOrDefault(branch.Name) is { IsActive: true } existing)
-                {
-                    numbers.Add(existing.Number);
-                    continue;
-                }
-
-                var subjects = await _drafts.GetCommitSubjectsAsync(repository, branch.Parent == _trunk ? $"origin/{_trunk}" : branch.Parent);
-                var body = templates.FirstOrDefault()?.Content ?? PullRequestDraftService.CommitList(subjects);
-                var created = await _pullRequestService.CreateAsync(
-                    gitHub, branch.Name, branch.Parent, PullRequestDraftService.TitleFor(branch.Name, subjects), body, asDrafts);
-                numbers.Add(created.Number);
-            }
-
             // The stack list in every description, with this PR in bold.
+            var numbers = stack.Branches
+                .Select(branch => created.GetValueOrDefault(branch.Name) ?? _pullRequests.ByBranch.GetValueOrDefault(branch.Name))
+                .Where(pullRequest => pullRequest?.IsActive == true)
+                .Select(pullRequest => pullRequest!.Number)
+                .ToList();
+
             for (var index = 0; index < numbers.Count; index++)
             {
                 var body = await _pullRequestService.GetBodyAsync(gitHub, numbers[index]);
@@ -494,15 +509,51 @@ public sealed partial class StacksViewModel : ObservableObject
                 }
             }
 
-            NoticeRaised?.Invoke(missing.Count == 0
+            NoticeRaised?.Invoke(created.Count == 0
                 ? $"Updated the stack list in {numbers.Count} pull requests"
-                : $"Created {(missing.Count == 1 ? "1 pull request" : $"{missing.Count} pull requests")} for {stack.Name}");
+                : $"Created {(created.Count == 1 ? "1 pull request" : $"{created.Count} pull requests")} for {stack.Name}");
 
             if (Pushed is { } pushed)
             {
                 await pushed(); // asks GitHub again, so the badges show the new PRs
             }
         });
+    }
+
+    /// <summary>"New stack from existing branches": pick the top, confirm the branches below it.</summary>
+    [RelayCommand(CanExecute = nameof(CanAct))]
+    private async Task NewStackAsync()
+    {
+        if (_repositoryPath is not { } repository)
+        {
+            return;
+        }
+
+        var stacked = Stacks.SelectMany(item => item.Stack.Branches.Select(branch => branch.Name)).ToHashSet(StringComparer.Ordinal);
+        var branches = (await _branches.ListAsync(repository)).Local
+            .Select(branch => branch.Name)
+            .Where(name => name != _trunk && !stacked.Contains(name))
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (branches.Count == 0)
+        {
+            MessageRaised?.Invoke("Every branch is already in a stack (or there's only the trunk).");
+            return;
+        }
+
+        var dialog = new NewStackViewModel(_trunk, branches, _currentBranch, top => _stacks.FindCandidatesAsync(repository, top, _trunk));
+        if (!await _dialogs.ShowNewStackAsync(dialog) || dialog.Result is not { Count: > 0 } chain)
+        {
+            return;
+        }
+
+        await RunAsync(async () =>
+        {
+            await _stacks.CreateStackAsync(repository, _trunk, chain);
+            NoticeRaised?.Invoke($"Created a stack of {chain.Count} branches: {_trunk} → {string.Join(" → ", chain)}");
+        });
+        SelectStackWith(chain[0]);
     }
 
     public Task SwitchToAsync(StackBranchViewModel branch) => _branchList.SwitchToAsync(branch.Name);

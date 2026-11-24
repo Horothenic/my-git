@@ -10,6 +10,12 @@ namespace MyGit.Core.Stacks;
 /// <param name="NeedsRestack">The parent changed (amended, or new commits) since this branch was built on it.</param>
 public sealed record StackEntry(string Name, string Parent, string? Base, int CommitCount, bool NeedsRestack);
 
+/// <summary>A branch that could be part of a new stack (found below the chosen top branch).</summary>
+/// <param name="CommitCount">Commits it has that the trunk doesn't.</param>
+/// <param name="SameCommitAs">Another candidate on the very same commit (then only one of them is suggested).</param>
+/// <param name="IsSuggested">Ticked by default: on the way down from the top, and not a duplicate.</param>
+public sealed record StackCandidate(string Name, int CommitCount, string? SameCommitAs, bool IsSuggested);
+
 /// <summary>A chain of branches, each built on the one before it, bottom first.</summary>
 public sealed record Stack(string Trunk, IReadOnlyList<StackEntry> Branches)
 {
@@ -114,6 +120,94 @@ public sealed class StackService
         var tip = await TipAsync(repositoryPath, current, cancellationToken);
         await _git.RunCheckedAsync(repositoryPath, ["switch", "--quiet", "--create", name], cancellationToken: cancellationToken);
         await SetAsync(repositoryPath, name, current, tip, cancellationToken);
+    }
+
+    /// <summary>
+    /// The branches a stack topped by <paramref name="top"/> would be made of, top first: every local branch whose tip
+    /// is in <paramref name="top"/>'s history but not in the trunk. Branches already in a stack are left out.
+    /// When several sit on the same commit, only the first is suggested.
+    /// </summary>
+    public async Task<IReadOnlyList<StackCandidate>> FindCandidatesAsync(string repositoryPath, string top, string trunk, CancellationToken cancellationToken = default)
+    {
+        var parents = await ReadConfigAsync(repositoryPath, ParentKey, cancellationToken);
+        var stacked = parents.Keys.Concat(parents.Values).Where(name => name != trunk).ToHashSet(StringComparer.Ordinal);
+
+        // "name sha" for every local branch.
+        var branches = (await _git.RunCheckedAsync(repositoryPath, ["for-each-ref", "--format=%(refname:short) %(objectname)", "refs/heads"], cancellationToken: cancellationToken))
+            .OutputLines.Select(line => line.Split(' ')).Where(parts => parts.Length == 2).ToList();
+
+        var found = new List<(string Name, string Sha, int Count, int Activity)>();
+        foreach (var parts in branches)
+        {
+            var (name, sha) = (parts[0], parts[1]);
+            if (name == trunk || (stacked.Contains(name) && name != top))
+            {
+                continue;
+            }
+
+            if (name != top && !await IsAncestorAsync(repositoryPath, sha, top, cancellationToken))
+            {
+                continue;
+            }
+
+            var count = await _git.RunAsync(repositoryPath, ["rev-list", "--count", $"{trunk}..{sha}"], cancellationToken: cancellationToken);
+            if (count.Succeeded && int.TryParse(count.StandardOutput.Trim(), out var commits) && commits > 0)
+            {
+                // How much was done on it (its reflog: commits, amends, ...), to pick between branches on one commit.
+                var reflog = await _git.RunAsync(repositoryPath, ["reflog", "show", "--format=%gs", $"refs/heads/{name}"], cancellationToken: cancellationToken);
+                found.Add((name, sha, commits, reflog.Succeeded ? reflog.OutputLines.Count : 0));
+            }
+        }
+
+        // Top first: the more commits on top of the trunk, the higher in the stack. The top itself always leads;
+        // on one commit, the branch that was worked on comes first (and is the one suggested).
+        var ordered = found
+            .OrderByDescending(branch => branch.Name == top)
+            .ThenByDescending(branch => branch.Count)
+            .ThenByDescending(branch => branch.Activity)
+            .ThenBy(branch => branch.Name, StringComparer.Ordinal)
+            .ToList();
+        var candidates = new List<StackCandidate>();
+        var firstOnCommit = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (var index = 0; index < ordered.Count; index++)
+        {
+            var (name, sha, count, _) = ordered[index];
+            var duplicateOf = firstOnCommit.GetValueOrDefault(sha);
+            firstOnCommit.TryAdd(sha, name);
+
+            // Its own commits: the ones the next branch down doesn't have.
+            var below = ordered.Skip(index + 1).FirstOrDefault(other => other.Count < count).Count;
+            candidates.Add(new StackCandidate(name, count - below, duplicateOf, IsSuggested: duplicateOf is null));
+        }
+
+        return candidates;
+    }
+
+    /// <summary>
+    /// Makes a stack out of existing branches, <paramref name="bottomFirst"/>: the first sits on the trunk, each next
+    /// one on the one before. Where a branch starts is taken from where it meets its parent.
+    /// </summary>
+    public async Task CreateStackAsync(string repositoryPath, string trunk, IReadOnlyList<string> bottomFirst, CancellationToken cancellationToken = default)
+    {
+        if (bottomFirst.Count == 0)
+        {
+            throw new ArgumentException("Choose at least one branch.", nameof(bottomFirst));
+        }
+
+        var parents = await ReadConfigAsync(repositoryPath, ParentKey, cancellationToken);
+        for (var index = 0; index < bottomFirst.Count; index++)
+        {
+            var branch = bottomFirst[index];
+            var parent = index == 0 ? trunk : bottomFirst[index - 1];
+
+            if (parents.FirstOrDefault(pair => pair.Value == parent && pair.Key != branch && !bottomFirst.Contains(pair.Key)).Key is { } other)
+            {
+                throw new InvalidOperationException($"{other} is already stacked on {parent}. Take it out of its stack first.");
+            }
+
+            var meet = (await _git.RunCheckedAsync(repositoryPath, ["merge-base", parent, branch], cancellationToken: cancellationToken)).StandardOutput.Trim();
+            await SetAsync(repositoryPath, branch, parent, meet, cancellationToken);
+        }
     }
 
     /// <summary>Takes a branch out of its stack (the branch itself stays). Branches above it then sit on its parent.</summary>
