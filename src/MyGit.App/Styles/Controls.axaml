@@ -350,26 +350,53 @@
     </Style.Animations>
   </Style>
 
-  <!-- Banner for a stopped rebase / merge / cherry-pick / revert -->
-  <Style Selector="Border.operation-banner">
+  <!-- Status bar at the bottom: a stopped rebase / merge / cherry-pick / revert, and messages -->
+  <Style Selector="Border.status-bar">
     <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
     <Setter Property="BorderBrush" Value="{DynamicResource WarningTextBrush}" />
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
-    <Setter Property="Padding" Value="12,6" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+    <Setter Property="Padding" Value="10,2" />
+    <Setter Property="MinHeight" Value="28" />
+  </Style>
+  <Style Selector="Button.status-button">
+    <Setter Property="Padding" Value="10,1" />
+    <Setter Property="MinHeight" Value="22" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
 
-  <!-- Built-in conflict resolver -->
-  <Style Selector="SelectableTextBlock.conflict-side">
+  <!-- Built-in conflict resolver (VS Code style) -->
+  <Style Selector="SelectableTextBlock.code">
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
     <Setter Property="FontSize" Value="12" />
-    <Setter Property="Padding" Value="10,6" />
-    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="LineHeight" Value="19" />
   </Style>
-  <Style Selector="SelectableTextBlock.conflict-side.ours">
-    <Setter Property="Background" Value="{DynamicResource AccentSubtleBrush}" />
+  <Style Selector="TextBlock.conflict-header">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="12,1" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
-  <Style Selector="SelectableTextBlock.conflict-side.theirs">
-    <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
+  <Style Selector="Border.conflict-block">
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Margin" Value="0,2" />
+  </Style>
+  <Style Selector="Border.conflict-block.current">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+  </Style>
+  <Style Selector="Button.lens">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.lens:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
   <Style Selector="TextBox.conflict-result">
     <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />

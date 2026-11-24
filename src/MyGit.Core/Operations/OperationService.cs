@@ -18,20 +18,22 @@ public enum OperationKind
 /// <param name="Onto">For a rebase: what it's going onto (a branch name when known, else a short id).</param>
 /// <param name="Step">For a rebase: which commit it's on (1-based), and how many there are.</param>
 /// <param name="CurrentCommit">The commit being replayed / picked / reverted (its message's first line).</param>
+/// <param name="IsEditStop">For an interactive rebase: stopped at an "edit" step (not a conflict), so the commit can be changed.</param>
 public sealed record OperationState(
     OperationKind Kind,
     string? Branch = null,
     string? Onto = null,
     int Step = 0,
     int TotalSteps = 0,
-    string? CurrentCommit = null)
+    string? CurrentCommit = null,
+    bool IsEditStop = false)
 {
     public static readonly OperationState Idle = new(OperationKind.None);
 
     public bool IsActive => Kind != OperationKind.None;
 
-    /// <summary>Merges can't skip a commit; the others can.</summary>
-    public bool CanSkip => Kind is OperationKind.Rebase or OperationKind.CherryPick or OperationKind.Revert;
+    /// <summary>Merges can't skip a commit; the others can (except at an edit stop: that commit is already in).</summary>
+    public bool CanSkip => (Kind is OperationKind.Rebase or OperationKind.CherryPick or OperationKind.Revert) && !IsEditStop;
 }
 
 public enum ContinueOutcome
@@ -146,7 +148,10 @@ public sealed class OperationService
             ? await SubjectAsync(repositoryPath, ReadFirstLine(Path.Combine(folder, "stopped-sha"))!, cancellationToken)
             : await SubjectAsync(repositoryPath, "REBASE_HEAD", cancellationToken);
 
-        return new OperationState(OperationKind.Rebase, branch, onto, step, total, stopped);
+        // git writes "amend" when it stops at an edit step: staged changes then go into that commit on continue.
+        var isEditStop = File.Exists(Path.Combine(folder, "amend"));
+
+        return new OperationState(OperationKind.Rebase, branch, onto, step, total, stopped, isEditStop);
     }
 
     /// <summary>A branch name pointing at <paramref name="sha"/> if there is one (e.g. "main"), else a short id.</summary>

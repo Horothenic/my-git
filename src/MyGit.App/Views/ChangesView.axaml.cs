@@ -2,7 +2,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.VisualTree;
 using Avalonia.Input;
+using Avalonia.Animation;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Styling;
 using MyGit.App.ViewModels.Changes;
 
 namespace MyGit.App.Views;
@@ -50,6 +53,18 @@ public sealed partial class ChangesView : UserControl
 
         StashButton.Click += (_, _) => Run(vm => vm.StashAsync(Selection(UnstagedTree)));
 
+        // The resolver's ↑/↓ (and each choice) scroll to the conflict they land on.
+        DataContextChanged += (_, _) =>
+        {
+            if (ViewModel is { } viewModel)
+            {
+                viewModel.Resolver.ScrollRequested -= ScrollToConflict;
+                viewModel.Resolver.ScrollRequested += ScrollToConflict;
+                viewModel.Resolver.SaveRefused -= ShakeSaveButton;
+                viewModel.Resolver.SaveRefused += ShakeSaveButton;
+            }
+        };
+
         // A conflict takes over the right side; picking a normal file gives it back.
         UnstagedTree.SelectionChanged += (_, _) => { if (UnstagedTree.SelectedItems.Count > 0) { ConflictList.SelectedItem = null; } };
         StagedTree.SelectionChanged += (_, _) => { if (StagedTree.SelectedItems.Count > 0) { ConflictList.SelectedItem = null; } };
@@ -72,6 +87,33 @@ public sealed partial class ChangesView : UserControl
     }
 
     private ChangesViewModel? ViewModel => DataContext as ChangesViewModel;
+
+    private void ScrollToConflict(ConflictBlockViewModel block) =>
+        ResolverSegments.ContainerFromItem(block)?.BringIntoView();
+
+    // A quick side-to-side shake: "not yet, some conflicts are undecided".
+    private static readonly Animation Shake = new()
+    {
+        Duration = TimeSpan.FromMilliseconds(400),
+        Children =
+        {
+            ShakeFrame(0.0, 0),
+            ShakeFrame(0.15, -7),
+            ShakeFrame(0.3, 7),
+            ShakeFrame(0.45, -5),
+            ShakeFrame(0.6, 5),
+            ShakeFrame(0.8, -2),
+            ShakeFrame(1.0, 0),
+        },
+    };
+
+    private void ShakeSaveButton() => _ = Shake.RunAsync(SaveResolvedButton);
+
+    private static KeyFrame ShakeFrame(double cue, double x) => new()
+    {
+        Cue = new Cue(cue),
+        Setters = { new Setter(TranslateTransform.XProperty, x) },
+    };
 
     private static List<FileTreeNodeViewModel> Selection(TreeView tree) =>
         tree.SelectedItems.OfType<FileTreeNodeViewModel>().ToList();

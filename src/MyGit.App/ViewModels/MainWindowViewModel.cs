@@ -47,8 +47,17 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Operation.MessageRaised += ShowMessage;
         Operation.NoticeRaised += Sync.ShowNotice;
         Operation.RepositoryChanged += RefreshAsync;
+        Operation.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Operation.IsActive))
+            {
+                OnPropertyChanged(nameof(IsStatusBarVisible));
+            }
+        };
         Branches.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
         History.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
+        Branches.InteractiveRebaseRequested += onto => Operation.StartInteractiveRebaseAsync(BranchName, onto);
+        History.InteractiveRebaseRequested += (commit, label) => Operation.StartInteractiveRebaseFromAsync(BranchName, commit, label);
         Changes.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(Changes.ConflictCount))
@@ -104,10 +113,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public partial string BranchName { get; set; } = "—";
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMessage))]
+    [NotifyPropertyChangedFor(nameof(HasMessage), nameof(IsStatusBarVisible))]
     public partial string? Message { get; set; }
 
     public bool HasMessage => Message is not null;
+
+    /// <summary>The bottom bar shows while a rebase (or merge, ...) is stopped, or a message is up.</summary>
+    public bool IsStatusBarVisible => HasMessage || Operation.IsActive;
 
     /// <summary>Reopens the repository that was open last time.</summary>
     public async Task InitializeAsync()

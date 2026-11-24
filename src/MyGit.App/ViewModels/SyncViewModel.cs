@@ -34,7 +34,7 @@ public sealed partial class SyncViewModel : ObservableObject
         _dialogs = dialogs;
     }
 
-    /// <summary>Raised with an error for the yellow message bar.</summary>
+    /// <summary>Raised with an error for the status bar.</summary>
     public event Action<string>? MessageRaised;
 
     /// <summary>Raised after a pull or push changed the repository, so the rest of the window refreshes.</summary>

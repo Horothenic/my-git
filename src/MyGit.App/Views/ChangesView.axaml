@@ -274,58 +274,106 @@
           <TextBlock Classes="caption" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding OursExplanation}" />
           <TextBlock Classes="caption" TextWrapping="Wrap" TextAlignment="Center" Text="{Binding TheirsExplanation}" />
         </StackPanel>
-        <!-- Built-in resolver: both sides of the current conflict, the choice bar, and the editable result -->
-        <Grid RowDefinitions="Auto,Auto,*,Auto" IsVisible="{Binding Resolver.IsActive}">
-          <Grid Grid.Row="0" ColumnDefinitions="*,1,*" MinHeight="90" MaxHeight="220">
-            <DockPanel Grid.Column="0">
-              <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6" Text="{Binding Resolver.OursLabel}" TextTrimming="CharacterEllipsis" />
-              <ScrollViewer>
-                <SelectableTextBlock Classes="conflict-side ours" Text="{Binding Resolver.CurrentOursText}" />
-              </ScrollViewer>
-            </DockPanel>
-            <Border Grid.Column="1" Background="{DynamicResource BorderBrush}" />
-            <DockPanel Grid.Column="2">
-              <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6" Text="{Binding Resolver.TheirsLabel}" TextTrimming="CharacterEllipsis" />
-              <ScrollViewer>
-                <SelectableTextBlock Classes="conflict-side theirs" Text="{Binding Resolver.CurrentTheirsText}" />
-              </ScrollViewer>
-            </DockPanel>
-          </Grid>
-
-          <Border Grid.Row="1" Classes="selection-bar" BorderThickness="0,1,0,1">
+        <!-- Built-in resolver, VS Code style: the file with each conflict in place, decided one by one -->
+        <DockPanel IsVisible="{Binding Resolver.IsActive}">
+          <Border DockPanel.Dock="Top" Classes="selection-bar" BorderThickness="0,0,0,1">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6">
-                <Button Classes="header-button" Content="{Binding Resolver.TakeOursText}" Command="{Binding Resolver.TakeOursCommand}" />
-                <Button Classes="header-button" Content="{Binding Resolver.TakeTheirsText}" Command="{Binding Resolver.TakeTheirsCommand}" />
-                <Button Classes="header-button" Content="Take both" Command="{Binding Resolver.TakeBothCommand}"
-                        ToolTip.Tip="Keep both: the left side's lines first, then the right side's" />
+                <Button Classes="header-button" Content="Edit by hand" Command="{Binding Resolver.EditByHandCommand}" IsVisible="{Binding Resolver.IsConflictView}"
+                        ToolTip.Tip="Edit the whole file as plain text" />
+                <Button Classes="header-button" Content="Back to conflicts" Command="{Binding Resolver.BackToConflictsCommand}" IsVisible="{Binding Resolver.IsEditingByHand}" />
               </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Button Classes="header-button" Command="{Binding Resolver.PreviousCommand}" ToolTip.Tip="Previous conflict">
+              <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Button Classes="header-button" Command="{Binding Resolver.PreviousCommand}" ToolTip.Tip="Previous conflict" IsVisible="{Binding Resolver.IsConflictView}">
                   <mi:MaterialIcon Kind="ChevronUp" Width="14" Height="14" />
                 </Button>
-                <Button Classes="header-button" Command="{Binding Resolver.NextCommand}" ToolTip.Tip="Next conflict">
+                <Button Classes="header-button" Command="{Binding Resolver.NextCommand}" ToolTip.Tip="Next conflict" IsVisible="{Binding Resolver.IsConflictView}">
                   <mi:MaterialIcon Kind="ChevronDown" Width="14" Height="14" />
                 </Button>
-                <TextBlock Text="{Binding Resolver.PositionText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Resolver.PositionText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" />
               </StackPanel>
+
+              <!-- Which side is which; one line that shortens with "…" when the panel is narrow -->
+              <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0">
+                <Run Text="■ " Foreground="{DynamicResource ConflictCurrentHeaderBrush}" />
+                <Run Text="{Binding Resolver.CurrentLegend}" />
+                <Run Text="     ■ " Foreground="{DynamicResource ConflictIncomingHeaderBrush}" />
+                <Run Text="{Binding Resolver.IncomingLegend}" />
+              </TextBlock>
             </DockPanel>
           </Border>
 
-          <DockPanel Grid.Row="2">
-            <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6"
-                       Text="Result (what will be saved). You can edit it; taking a side rebuilds it from your choices." />
-            <TextBox Classes="conflict-result" Text="{Binding Resolver.ResultText}" AcceptsReturn="True" AcceptsTab="True" />
-          </DockPanel>
-
-          <Border Grid.Row="3" Classes="selection-bar">
+          <Border DockPanel.Dock="Bottom" Classes="selection-bar" BorderThickness="0,1,0,0">
             <DockPanel>
-              <Button DockPanel.Dock="Right" Classes="accent" Content="Save and mark resolved" Command="{Binding Resolver.SaveCommand}" />
+              <Button x:Name="SaveResolvedButton" DockPanel.Dock="Right" Classes="accent" Content="Save and mark resolved" Command="{Binding Resolver.SaveCommand}">
+                <Button.RenderTransform>
+                  <TranslateTransform />
+                </Button.RenderTransform>
+              </Button>
               <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap"
-                         Text="Undecided conflicts keep their markers, and the file stays under Conflicts until they're gone." />
+                         Text="Decide every conflict (or edit them away by hand), then save." />
             </DockPanel>
           </Border>
-        </Grid>
+
+          <Panel>
+            <!-- Conflict view -->
+            <ScrollViewer x:Name="ResolverScroll" HorizontalScrollBarVisibility="Auto" IsVisible="{Binding Resolver.IsConflictView}">
+              <ItemsControl x:Name="ResolverSegments" ItemsSource="{Binding Resolver.Segments}" Margin="0,6">
+                <ItemsControl.DataTemplates>
+                  <DataTemplate DataType="vm:CommonTextViewModel">
+                    <SelectableTextBlock Classes="code" Text="{Binding Text}" />
+                  </DataTemplate>
+                  <DataTemplate DataType="vm:ConflictBlockViewModel">
+                    <Border Classes="conflict-block" Classes.current="{Binding IsCurrent}">
+                      <StackPanel>
+                        <!-- Undecided: the accept links, then both changes -->
+                        <StackPanel IsVisible="{Binding IsUnresolved}">
+                          <StackPanel Orientation="Horizontal" Spacing="6" Margin="12,2">
+                            <Button Classes="lens" Content="Accept current" Command="{Binding AcceptCurrentCommand}" />
+                            <TextBlock Classes="caption" Text="·" VerticalAlignment="Center" />
+                            <Button Classes="lens" Content="Accept incoming" Command="{Binding AcceptIncomingCommand}" />
+                            <TextBlock Classes="caption" Text="·" VerticalAlignment="Center" />
+                            <Button Classes="lens" Content="Accept both" Command="{Binding AcceptBothCommand}" ToolTip.Tip="Keep both: the current change first, then the incoming one" />
+                          </StackPanel>
+                          <Border Background="{DynamicResource ConflictCurrentHeaderBrush}">
+                            <TextBlock Classes="conflict-header" Text="{Binding CurrentHeader}" />
+                          </Border>
+                          <Border Background="{DynamicResource ConflictCurrentBrush}">
+                            <SelectableTextBlock Classes="code" Text="{Binding CurrentText}" />
+                          </Border>
+                          <Border Background="{DynamicResource ConflictIncomingBrush}">
+                            <SelectableTextBlock Classes="code" Text="{Binding IncomingText}" />
+                          </Border>
+                          <Border Background="{DynamicResource ConflictIncomingHeaderBrush}">
+                            <TextBlock Classes="conflict-header" Text="{Binding IncomingHeader}" />
+                          </Border>
+                        </StackPanel>
+
+                        <!-- Decided: what was taken, with Undo -->
+                        <StackPanel IsVisible="{Binding IsResolved}">
+                          <StackPanel Orientation="Horizontal" Spacing="6" Margin="12,2">
+                            <TextBlock FontSize="12" Foreground="{DynamicResource SuccessBrush}" Text="{Binding ResolvedNote}" VerticalAlignment="Center" />
+                            <TextBlock Classes="caption" Text="·" VerticalAlignment="Center" />
+                            <Button Classes="lens" Content="Undo" Command="{Binding UndoCommand}" />
+                          </StackPanel>
+                          <Border Background="{DynamicResource ConflictResolvedBrush}">
+                            <SelectableTextBlock Classes="code" Text="{Binding ResolvedText}" />
+                          </Border>
+                        </StackPanel>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.DataTemplates>
+              </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Editing by hand -->
+            <DockPanel IsVisible="{Binding Resolver.IsEditingByHand}">
+              <TextBlock DockPanel.Dock="Top" Classes="caption" Margin="10,6" TextWrapping="Wrap" Text="{Binding Resolver.HandNote}" />
+              <TextBox Classes="conflict-result" Text="{Binding Resolver.HandText}" AcceptsReturn="True" AcceptsTab="True" />
+            </DockPanel>
+          </Panel>
+        </DockPanel>
         </Panel>
       </DockPanel>
 
@@ -334,7 +382,7 @@
       <!-- While a rebase / merge / cherry-pick / revert is stopped, Continue commits instead -->
       <Border Grid.Row="3" Background="{DynamicResource PanelBackgroundBrush}" Padding="14,12" IsVisible="{Binding IsOperationActive}">
         <TextBlock Classes="caption" FontSize="12" TextWrapping="Wrap"
-                   Text="Resolve the conflicts, then press Continue in the yellow bar above: it commits the resolved files and goes on. No need to commit here." />
+                   Text="Resolve the conflicts, then press Continue in the bar at the bottom: it commits the resolved files and goes on. No need to commit here." />
       </Border>
 
       <!-- Commit box, plus the confirmation strip for the commit just made -->

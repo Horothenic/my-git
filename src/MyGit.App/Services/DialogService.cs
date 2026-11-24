@@ -89,6 +89,13 @@ public sealed class DialogService : IDialogService
         return window.Result;
     }
 
+    public async Task<bool> ShowInteractiveRebaseAsync(ViewModels.Rebase.InteractiveRebaseViewModel viewModel)
+    {
+        var window = new InteractiveRebaseWindow { DataContext = viewModel };
+        await window.ShowDialog(_owner);
+        return viewModel.Started;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();
