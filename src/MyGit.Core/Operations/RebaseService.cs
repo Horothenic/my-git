@@ -49,6 +49,21 @@ public sealed class RebaseService
         RunRebaseAsync(repositoryPath, ["rebase", onto], NoEditor, autoStash, $"rebasing onto {onto}", cancellationToken);
 
     /// <summary>
+    /// Restacks: replays the commits after <paramref name="upstream"/> up to <paramref name="top"/> onto
+    /// <paramref name="onto"/>, moving every branch in between along (--update-refs). Afterwards it switches back
+    /// to <paramref name="returnTo"/> (before auto-stashed changes come back, so they land where they were).
+    /// </summary>
+    public Task<RebaseOutcome> RebaseStackAsync(
+        string repositoryPath,
+        string onto,
+        string upstream,
+        string top,
+        string? returnTo,
+        bool autoStash,
+        CancellationToken cancellationToken = default) =>
+        RunRebaseAsync(repositoryPath, ["rebase", "--update-refs", "--onto", onto, upstream, top], NoEditor, autoStash, $"restacking {top}", cancellationToken, returnTo);
+
+    /// <summary>
     /// The commits an interactive rebase onto <paramref name="upstream"/> replays, oldest first
     /// (the order git replays them). With a null upstream: every commit, from the first one.
     /// Merge commits are left out: the rebase flattens them.
@@ -235,7 +250,8 @@ public sealed class RebaseService
         IReadOnlyDictionary<string, string> environment,
         bool autoStash,
         string label,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? returnTo = null)
     {
         // git's own --autostash leaves new (untracked) files behind; stash them too so they come along.
         var stashed = false;
@@ -248,6 +264,12 @@ public sealed class RebaseService
             stashed = !push.StandardOutput.Contains("No local changes", StringComparison.OrdinalIgnoreCase);
         }
 
+        // Restacking: --update-refs skips a branch that's checked out, so nothing may be while it runs.
+        if (returnTo is not null)
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["switch", "--quiet", "--detach"], cancellationToken: cancellationToken);
+        }
+
         var result = await _git.RunAsync(repositoryPath, arguments, environment, cancellationToken);
 
         if (await IsRebaseInProgressAsync(repositoryPath, cancellationToken))
@@ -258,6 +280,11 @@ public sealed class RebaseService
             }
 
             return result.Succeeded ? RebaseOutcome.Stopped : RebaseOutcome.Conflict;
+        }
+
+        if (returnTo is not null)
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["switch", "--quiet", returnTo], cancellationToken: cancellationToken);
         }
 
         if (stashed)

@@ -31,6 +31,9 @@ public sealed partial class LocalBranchItemViewModel(LocalBranch branch, Branche
     [RelayCommand]
     private void RebaseInteractivelyOnto() => owner.RequestInteractiveRebase(this);
 
+    [RelayCommand]
+    private void StackOnTop() => owner.RequestStackOnTop();
+
     /// <summary>e.g. "Interactively rebase feature/inventory onto main…" (set when the list loads).</summary>
     public string InteractiveRebaseText { get; init; } = string.Empty;
 
@@ -167,6 +170,19 @@ public sealed partial class BranchesViewModel : ObservableObject
 
     public Task SwitchAsync(LocalBranchItemViewModel item) =>
         item.IsCurrent ? Task.CompletedTask : SwitchWithAsync(item.Name, stash => _branches.SwitchAsync(_repositoryPath!, item.Name, stash));
+
+    /// <summary>Switches to a local branch by name (asks to stash when needed, like the dropdown).</summary>
+    public Task SwitchToAsync(string branch) =>
+        SwitchWithAsync(branch, stash => _branches.SwitchAsync(_repositoryPath!, branch, stash));
+
+    /// <summary>Raised to stack a new branch on top of the checked-out one (the Stacks tab does it).</summary>
+    public event Func<Task>? StackOnTopRequested;
+
+    public void RequestStackOnTop()
+    {
+        CloseRequested?.Invoke();
+        _ = StackOnTopRequested?.Invoke();
+    }
 
     public Task CheckoutRemoteAsync(RemoteBranchItemViewModel item) =>
         SwitchWithAsync(item.Branch.LocalName, stash => _branches.CheckoutRemoteAsync(_repositoryPath!, item.Branch, stash));

@@ -32,7 +32,8 @@ public sealed partial class MainWindowViewModel : ObservableObject
         BranchesViewModel branches,
         UndoViewModel undo,
         OperationViewModel operation,
-        PullRequests.PullRequestsViewModel pullRequests)
+        PullRequests.PullRequestsViewModel pullRequests,
+        Func<PullRequests.PullRequestsViewModel, BranchesViewModel, Stacks.StacksViewModel> createStacks)
     {
         _repositoryService = repositoryService;
         _settingsStore = settingsStore;
@@ -50,6 +51,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
         PullRequests.PullRequestsChanged += Branches.ApplyPullRequests;
         PullRequests.NoticeRaised += Sync.ShowNotice;
         PullRequests.MessageRaised += ShowMessage;
+        Stacks = createStacks(pullRequests, branches);
+        Stacks.MessageRaised += ShowMessage;
+        Stacks.NoticeRaised += Sync.ShowNotice;
+        Stacks.RepositoryChanged += RefreshAsync;
+        Stacks.Pushed += () => PullRequests.RefreshAsync(CurrentRepository?.Path, PullRequests.Branch, askGitHub: true);
+        Branches.StackOnTopRequested += () => Stacks.StackOnTopAsync();
+        Operation.Ended += Stacks.OnOperationEnded;
         Sync.RemoteUpdated += () => PullRequests.RefreshAsync(CurrentRepository?.Path, Changes.BranchName.Length > 0 ? Changes.BranchName : null, askGitHub: true);
         Operation.MessageRaised += ShowMessage;
         Operation.NoticeRaised += Sync.ShowNotice;
@@ -122,6 +130,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     /// <summary>The pull request button in the toolbar.</summary>
     public PullRequests.PullRequestsViewModel PullRequests { get; }
 
+    /// <summary>The Stacks tab.</summary>
+    public Stacks.StacksViewModel Stacks { get; }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasMessage), nameof(IsStatusBarVisible))]
     public partial string? Message { get; set; }
@@ -188,6 +199,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
             History.CurrentBranch = branch;
             await PullRequests.RefreshAsync(CurrentRepository.Path, branch, askGitHub: branch != PullRequests.Branch);
             await Changes.RefreshAsync();
+            await Stacks.RefreshAsync(CurrentRepository.Path, branch, Operation.IsActive);
         }
         catch (GitCommandException exception)
         {
@@ -240,6 +252,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         _ = Undo.RefreshAsync(null);
         _ = Operation.RefreshAsync(null);
         _ = PullRequests.RefreshAsync(null, null);
+        _ = Stacks.RefreshAsync(null, null, operationActive: false);
         RepositoryPicker.MarkCurrent(null);
 
         _settingsStore.Settings.LastRepositoryPath = null;

@@ -74,7 +74,17 @@ public sealed class App : Application
                 new UndoViewModel(new MyGit.Core.Undo.UndoService(git), dialogs),
                 new OperationViewModel(new MyGit.Core.Operations.OperationService(git), new MyGit.Core.Operations.RebaseService(git), dialogs),
                 new ViewModels.PullRequests.PullRequestsViewModel(
-                    new MyGit.GitHub.PullRequests.PullRequestService(accounts), new MyGit.Core.PullRequests.PullRequestDraftService(git), repositoryService, dialogs, shell));
+                    new MyGit.GitHub.PullRequests.PullRequestService(accounts), new MyGit.Core.PullRequests.PullRequestDraftService(git), repositoryService, dialogs, shell),
+                (pullRequests, branches) => new ViewModels.Stacks.StacksViewModel(
+                    new MyGit.Core.Stacks.StackService(git, new MyGit.Core.Operations.RebaseService(git)),
+                    new BranchService(git),
+                    historyService,
+                    new MyGit.GitHub.PullRequests.PullRequestService(accounts),
+                    new MyGit.Core.PullRequests.PullRequestDraftService(git),
+                    pullRequests,
+                    branches,
+                    dialogs,
+                    shell));
 
             // Signing in or out changes which pull requests we can see.
             accounts.AccountChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = viewModel.PullRequests.OnAccountChangedAsync());

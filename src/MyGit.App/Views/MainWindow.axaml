@@ -213,6 +213,7 @@
                                   <MenuItem Header="Switch to this branch" Command="{Binding SwitchCommand}" IsEnabled="{Binding IsNotCurrent}" />
                                   <MenuItem Header="{Binding RebaseText}" Command="{Binding RebaseOntoCommand}" IsVisible="{Binding IsNotCurrent}" />
                                   <MenuItem Header="{Binding InteractiveRebaseText}" Command="{Binding RebaseInteractivelyOntoCommand}" IsVisible="{Binding IsNotCurrent}" />
+                                  <MenuItem Header="Stack a new branch on top…" Command="{Binding StackOnTopCommand}" IsVisible="{Binding IsCurrent}" />
                                   <MenuItem Header="{Binding FastForwardText}" Command="{Binding FastForwardCommand}" IsVisible="{Binding CanFastForward}" />
                                   <Separator />
                                   <MenuItem Header="Rename…" Command="{Binding RenameCommand}" />
@@ -464,10 +465,7 @@
               <TextBlock Text="Stacks" VerticalAlignment="Center" />
             </StackPanel>
           </TabItem.Header>
-          <Border Classes="placeholder">
-            <TextBlock Classes="caption" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Text="Stacked pull requests arrive in Phases 10 and 11." />
-          </Border>
+          <views:StacksView DataContext="{Binding Stacks}" />
         </TabItem>
       </TabControl>
     </Panel>
