@@ -16,6 +16,13 @@ public sealed partial class ConfirmWindow : Window
     }
 
     public ConfirmWindow(string title, string message, string confirmText)
+        : this(title, message, confirmText, optionText: null, optionDefault: false, dangerous: true)
+    {
+    }
+
+    /// <param name="optionText">An optional tickbox under the message (null hides it).</param>
+    /// <param name="dangerous">Red confirm button (destructive) or the normal accent one.</param>
+    public ConfirmWindow(string title, string message, string confirmText, string? optionText, bool optionDefault, bool dangerous)
     {
         InitializeComponent();
         TitleBarIcon.Attach(this);
@@ -24,6 +31,19 @@ public sealed partial class ConfirmWindow : Window
         TitleText.Text = title;
         MessageText.Text = message;
         ConfirmButton.Content = confirmText;
+
+        if (!dangerous)
+        {
+            ConfirmButton.Classes.Remove("danger");
+            ConfirmButton.Classes.Add("accent");
+        }
+
+        if (optionText is not null)
+        {
+            Option.IsVisible = true;
+            Option.Content = optionText;
+            Option.IsChecked = optionDefault;
+        }
 
         ConfirmButton.Click += (_, _) =>
         {
@@ -35,4 +55,6 @@ public sealed partial class ConfirmWindow : Window
     }
 
     public bool Confirmed { get; private set; }
+
+    public bool IsOptionChecked => Option.IsChecked == true;
 }

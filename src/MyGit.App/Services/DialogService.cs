@@ -61,6 +61,13 @@ public sealed class DialogService : IDialogService
         return window.Confirmed;
     }
 
+    public async Task<(bool Confirmed, bool Option)> ConfirmWithOptionAsync(string title, string message, string confirmText, string optionText, bool optionDefault, bool dangerous)
+    {
+        var window = new ConfirmWindow(title, message, confirmText, optionText, optionDefault, dangerous);
+        await window.ShowDialog(_owner);
+        return (window.Confirmed, window.IsOptionChecked);
+    }
+
     public async Task<int> ChooseAsync(string title, string message, IReadOnlyList<string> choices, int dangerIndex = -1)
     {
         var window = new ChoiceWindow(title, message, choices, dangerIndex);

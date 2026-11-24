@@ -18,6 +18,8 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     private readonly ChangesService _changes;
     private readonly PartialChangesService _partial;
     private readonly Core.Stashes.StashService _stashes;
+    private readonly Core.Operations.ConflictService _conflicts;
+    private readonly Core.Operations.MergeToolService _mergeTools;
     private readonly CommitService _commits;
     private readonly HiddenFilesStore _hidden;
     private readonly Core.Repositories.RepositoryService _repositories;
@@ -42,6 +44,8 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         ChangesService changes,
         PartialChangesService partial,
         Core.Stashes.StashService stashes,
+        Core.Operations.ConflictService conflicts,
+        Core.Operations.MergeToolService mergeTools,
         CommitService commits,
         Core.Diffs.DiffService diffs,
         HiddenFilesStore hidden,
@@ -53,6 +57,8 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         _changes = changes;
         _partial = partial;
         _stashes = stashes;
+        _conflicts = conflicts;
+        _mergeTools = mergeTools;
         _commits = commits;
         _hidden = hidden;
         _repositories = repositories;
@@ -81,6 +87,156 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
     public FileTree Staged { get; } = new();
 
     public DiffViewModel Diff { get; }
+
+    // ---- Conflicts (while a rebase, merge, cherry-pick or revert is stopped) ----
+
+    public System.Collections.ObjectModel.ObservableCollection<FileChange> ConflictFiles { get; } = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasConflicts))]
+    public partial int ConflictCount { get; set; }
+
+    public bool HasConflicts => ConflictCount > 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsConflictSelected), nameof(IsDiffShown))]
+    public partial FileChange? SelectedConflict { get; set; }
+
+    public bool IsConflictSelected => SelectedConflict is not null;
+
+    /// <summary>The normal diff, unless a conflicted file is selected.</summary>
+    public bool IsDiffShown => !IsConflictSelected;
+
+    /// <summary>The stopped operation, set by the window. Used to name the two sides clearly.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OursLabel), nameof(TheirsLabel), nameof(UseOursText), nameof(UseTheirsText),
+        nameof(OursExplanation), nameof(TheirsExplanation), nameof(IsCommitBoxVisible), nameof(IsOperationActive))]
+    public partial Core.Operations.OperationState Operation { get; set; } = Core.Operations.OperationState.Idle;
+
+    /// <summary>During a rebase / merge / cherry-pick / revert, Continue (in the banner) commits; the box is hidden.</summary>
+    public bool IsCommitBoxVisible => !Operation.IsActive;
+
+    public bool IsOperationActive => Operation.IsActive;
+
+    public string OursExplanation => $"{UseOursText} keeps the version from {OursLabel}.";
+
+    public string TheirsExplanation => $"{UseTheirsText} keeps the version from {TheirsLabel}.";
+
+    // git's "ours" and "theirs" swap meaning in a rebase: name them by what they are.
+    public string OursLabel => Operation.Kind == Core.Operations.OperationKind.Rebase ? $"{Operation.Onto ?? "the target branch"} (rebasing onto)" : "yours (current branch)";
+
+    public string TheirsLabel => Operation.Kind switch
+    {
+        Core.Operations.OperationKind.Rebase => $"yours: “{Operation.CurrentCommit}”",
+        Core.Operations.OperationKind.Merge => "the branch being merged in",
+        Core.Operations.OperationKind.CherryPick => $"the picked commit “{Operation.CurrentCommit}”",
+        Core.Operations.OperationKind.Revert => $"the revert of “{Operation.CurrentCommit}”",
+        _ => "theirs",
+    };
+
+    public string UseOursText => Operation.Kind == Core.Operations.OperationKind.Rebase ? $"Use {Operation.Onto ?? "target"}'s" : "Use yours";
+
+    public string UseTheirsText => Operation.Kind switch
+    {
+        Core.Operations.OperationKind.Rebase => "Use yours",
+        Core.Operations.OperationKind.Merge => "Use theirs",
+        _ => "Use the commit's",
+    };
+
+    /// <summary>Merge tools that fit the selected conflict (UnityYAMLMerge only for Unity assets).</summary>
+    public System.Collections.ObjectModel.ObservableCollection<Core.Operations.MergeTool> MergeTools { get; } = [];
+
+    public bool HasMergeTools => MergeTools.Count > 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotRunningTool))]
+    public partial string? RunningTool { get; set; }
+
+    public bool IsNotRunningTool => RunningTool is null;
+
+    partial void OnSelectedConflictChanged(FileChange? value) => _ = LoadMergeToolsAsync(value);
+
+    [RelayCommand]
+    private Task UseOursAsync() => ResolveSelectedAsync(path => _conflicts.UseSideAsync(RepositoryPath!, path, Core.Operations.ConflictSide.Ours));
+
+    [RelayCommand]
+    private Task UseTheirsAsync() => ResolveSelectedAsync(path => _conflicts.UseSideAsync(RepositoryPath!, path, Core.Operations.ConflictSide.Theirs));
+
+    [RelayCommand]
+    private Task MarkResolvedAsync()
+    {
+        if (SelectedConflict is { } conflict && RepositoryPath is { } repository &&
+            Core.Operations.ConflictService.HasConflictMarkers(Path.Combine(repository, conflict.Path.Replace('/', Path.DirectorySeparatorChar))))
+        {
+            MessageRaised?.Invoke($"{conflict.FileName} still has conflict markers (<<<<<<<). Remove them first, or use one of the other buttons.");
+            return Task.CompletedTask;
+        }
+
+        return ResolveSelectedAsync(path => _conflicts.MarkResolvedAsync(RepositoryPath!, path));
+    }
+
+    [RelayCommand]
+    private void OpenConflictInDefaultApp()
+    {
+        if (SelectedConflict is { } conflict && RepositoryPath is { } repository)
+        {
+            _shell.OpenFile(Path.Combine(repository, conflict.Path.Replace('/', Path.DirectorySeparatorChar)));
+        }
+    }
+
+    [RelayCommand]
+    private async Task RunMergeToolAsync(Core.Operations.MergeTool tool)
+    {
+        if (SelectedConflict is not { } conflict || RepositoryPath is not { } repository)
+        {
+            return;
+        }
+
+        RunningTool = $"Waiting for {tool.Name} to close…";
+
+        try
+        {
+            if (await _mergeTools.RunAsync(repository, conflict.Path, tool) == Core.Operations.MergeToolOutcome.NotResolved)
+            {
+                MessageRaised?.Invoke($"{tool.Name} closed without a finished result, so {conflict.FileName} is still conflicted.");
+            }
+        }
+        catch (GitCommandException exception)
+        {
+            MessageRaised?.Invoke(exception.Message);
+        }
+        finally
+        {
+            RunningTool = null;
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task ResolveSelectedAsync(Func<string, Task> resolve)
+    {
+        if (SelectedConflict is not { } conflict || RepositoryPath is null)
+        {
+            return;
+        }
+
+        await RunAsync(_ => resolve(conflict.Path));
+    }
+
+    private async Task LoadMergeToolsAsync(FileChange? conflict)
+    {
+        MergeTools.Clear();
+
+        if (conflict is not null && RepositoryPath is { } repository)
+        {
+            foreach (var tool in await _mergeTools.GetToolsForAsync(repository, conflict.Path))
+            {
+                MergeTools.Add(tool);
+            }
+        }
+
+        OnPropertyChanged(nameof(HasMergeTools));
+    }
 
     // ---- Stashes ----
 
@@ -653,8 +809,13 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
     private void UpdateTrees()
     {
-        var hidden = _status.Unstaged.Where(change => _hidden.IsHidden(_hiddenKey, change.Path)).ToList();
-        var visible = _status.Unstaged.Where(change => !_hidden.IsHidden(_hiddenKey, change.Path)).ToList();
+        // Conflicts get their own list above Unstaged, and are never hidden.
+        var conflicts = _status.Unstaged.Where(change => change.Kind == ChangeKind.Conflicted).ToList();
+        var others = _status.Unstaged.Where(change => change.Kind != ChangeKind.Conflicted).ToList();
+        UpdateConflicts(conflicts);
+
+        var hidden = others.Where(change => _hidden.IsHidden(_hiddenKey, change.Path)).ToList();
+        var visible = others.Where(change => !_hidden.IsHidden(_hiddenKey, change.Path)).ToList();
 
         Unstaged.Update(IsShowingHidden ? hidden : visible, IsFlat);
         Staged.Update(_status.Staged, IsFlat);
@@ -663,6 +824,23 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         UnstagedCount = Unstaged.FileCount;
         StagedCount = Staged.FileCount;
         HiddenCount = hidden.Count;
+    }
+
+    private void UpdateConflicts(List<FileChange> conflicts)
+    {
+        var selected = SelectedConflict?.Path;
+
+        if (!conflicts.Select(c => c.Path).SequenceEqual(ConflictFiles.Select(c => c.Path)))
+        {
+            ConflictFiles.Clear();
+            foreach (var conflict in conflicts)
+            {
+                ConflictFiles.Add(conflict);
+            }
+        }
+
+        ConflictCount = conflicts.Count;
+        SelectedConflict = ConflictFiles.FirstOrDefault(c => c.Path == selected);
     }
 
     /// <summary>Keeps the diff in sync after a refresh: reload it, or clear it if the file left its list.</summary>

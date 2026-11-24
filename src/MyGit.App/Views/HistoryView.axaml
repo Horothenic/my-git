@@ -23,6 +23,7 @@
             <MenuItem x:Name="CherryPickItem" Header="Cherry-pick onto this branch" />
             <MenuItem x:Name="RevertItem" Header="Revert this commit" />
             <MenuItem x:Name="ResetItem" Header="Reset this branch to here…" />
+            <MenuItem x:Name="RebaseItem" Header="Rebase this branch onto here…" />
             <Separator />
             <MenuItem x:Name="CheckoutItem" Header="Check out this commit (detached)…" />
             <MenuItem x:Name="CopyShaItem" Header="Copy commit id" />

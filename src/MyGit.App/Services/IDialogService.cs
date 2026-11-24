@@ -14,6 +14,9 @@ public interface IDialogService
     /// <summary>Asks a yes/no question with a red confirm button. Returns true if confirmed.</summary>
     Task<bool> ConfirmAsync(string title, string message, string confirmText);
 
+    /// <summary>Like <see cref="ConfirmAsync"/>, with a tickbox. Returns whether confirmed, and the tickbox state.</summary>
+    Task<(bool Confirmed, bool Option)> ConfirmWithOptionAsync(string title, string message, string confirmText, string optionText, bool optionDefault, bool dangerous);
+
     /// <summary>Asks with several buttons. Returns the clicked index, or -1 if the dialog was closed.</summary>
     Task<int> ChooseAsync(string title, string message, IReadOnlyList<string> choices, int dangerIndex = -1);
 

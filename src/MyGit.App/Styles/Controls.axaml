@@ -350,6 +350,19 @@
     </Style.Animations>
   </Style>
 
+  <!-- Banner for a stopped rebase / merge / cherry-pick / revert -->
+  <Style Selector="Border.operation-banner">
+    <Setter Property="Background" Value="{DynamicResource WarningBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WarningTextBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="12,6" />
+  </Style>
+
+  <!-- Conflicts header -->
+  <Style Selector="Border.conflicts-header">
+    <Setter Property="Background" Value="{DynamicResource DiffRemovedBrush}" />
+  </Style>
+
   <!-- Stashes section in the Changes tab -->
   <Style Selector="ListBox.stashes, ListBox.stash-files">
     <Setter Property="Background" Value="Transparent" />
