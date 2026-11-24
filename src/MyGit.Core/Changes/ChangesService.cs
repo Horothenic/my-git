@@ -80,6 +80,34 @@ public sealed class ChangesService
         }
     }
 
+    /// <summary>
+    /// A clean slate: every uncommitted change goes, staged or not, hidden or not. New files (staged ones too)
+    /// go to the Recycle Bin; tracked files go back to the last commit. Ignored files, commits and stashes stay.
+    /// </summary>
+    public async Task DiscardAllAsync(string repositoryPath, CancellationToken cancellationToken = default)
+    {
+        var hasCommits = await HasCommitsAsync(repositoryPath, cancellationToken);
+
+        // Unstage everything first, so new staged files count as new files (and go to the Recycle Bin, not away for good).
+        string[] unstage = hasCommits ? ["reset", "--quiet"] : ["rm", "-r", "--cached", "--quiet", "--ignore-unmatch", "."];
+        await _git.RunCheckedAsync(repositoryPath, unstage, cancellationToken: cancellationToken);
+
+        var untracked = await _git.RunCheckedAsync(repositoryPath, ["ls-files", "--others", "--exclude-standard", "-z"], cancellationToken: cancellationToken);
+        foreach (var path in untracked.StandardOutput.Split('\0', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var fullPath = Path.Combine(repositoryPath, path.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(fullPath))
+            {
+                _deleteUntrackedFile(fullPath);
+            }
+        }
+
+        if (hasCommits)
+        {
+            await _git.RunCheckedAsync(repositoryPath, ["reset", "--hard", "--quiet", "HEAD"], cancellationToken: cancellationToken);
+        }
+    }
+
     public async Task<bool> HasCommitsAsync(string repositoryPath, CancellationToken cancellationToken = default)
     {
         var result = await _git.RunAsync(repositoryPath, ["rev-parse", "--verify", "-q", "HEAD"], cancellationToken: cancellationToken);

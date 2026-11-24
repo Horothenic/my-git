@@ -324,6 +324,11 @@
     <Setter Property="Padding" Value="12,6" />
   </Style>
 
+  <!-- An icon button that throws work away (Discard all) -->
+  <Style Selector="Button.danger-icon:pointerover mi|MaterialIcon">
+    <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+  </Style>
+
   <!-- Text-only button, e.g. Undo -->
   <Style Selector="Button.link">
     <Setter Property="Background" Value="Transparent" />

@@ -80,15 +80,11 @@
                 <mi:MaterialIcon Kind="FormatListBulleted" Width="14" Height="14" IsVisible="{Binding IsFlat}" />
               </Panel>
             </Button>
-            <Button x:Name="StashButton" Classes="header-button" IsVisible="{Binding IsShowingChanges}"
-                    ToolTip.Tip="Put your uncommitted changes aside (select files first to stash only those)">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <mi:MaterialIcon Kind="ArchiveArrowDownOutline" Width="14" Height="14" />
-                <TextBlock Text="Stash…" />
-              </StackPanel>
+            <Button Classes="header-button danger-icon" Command="{Binding DiscardAllCommand}" AutomationProperties.Name="Discard all"
+                    ToolTip.ShowOnDisabled="True"
+                    ToolTip.Tip="Discard everything: staged and unstaged changes, new files and hidden ones (new files go to the Recycle Bin)">
+              <mi:MaterialIcon Kind="DeleteSweepOutline" Width="14" Height="14" />
             </Button>
-            <Button Classes="header-button" Content="Stage all" Command="{Binding StageAllCommand}"
-                    IsVisible="{Binding IsShowingChanges}" ToolTip.Tip="Stage every file shown (hidden files are skipped)" />
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
             <TextBlock FontWeight="SemiBold" Text="{Binding UnstagedTitle}" />
@@ -105,6 +101,7 @@
               <MenuItem x:Name="UnstagedStageItem" Header="Stage" InputGesture="Enter" />
               <MenuItem x:Name="UnstagedDiscardItem" Header="Discard changes…" InputGesture="Delete" />
               <MenuItem x:Name="UnstagedHideItem" Header="Hide" InputGesture="H" />
+              <MenuItem x:Name="UnstagedStashItem" Header="Stash…" />
               <Separator />
               <MenuItem x:Name="UnstagedOpenItem" Header="Open in editor" />
               <MenuItem x:Name="UnstagedExplorerItem" Header="Show in Explorer" />
