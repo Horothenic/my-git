@@ -1,5 +1,5 @@
-using Microsoft.VisualBasic.FileIO;
 using MyGit.Core.Git;
+using MyGit.Core.Platform;
 
 namespace MyGit.Core.Changes;
 
@@ -15,16 +15,13 @@ public sealed class ChangesService
     private readonly Action<string> _deleteUntrackedFile;
 
     /// <param name="deleteUntrackedFile">
-    /// How discarded untracked files are removed. Defaults to the Recycle Bin; tests delete directly.
+    /// How discarded untracked files are removed. Defaults to the Recycle Bin (Trash on a Mac); tests delete directly.
     /// </param>
     public ChangesService(IGitRunner git, Action<string>? deleteUntrackedFile = null)
     {
         _git = git;
-        _deleteUntrackedFile = deleteUntrackedFile ?? MoveToRecycleBin;
+        _deleteUntrackedFile = deleteUntrackedFile ?? Trash.Move;
     }
-
-    private static void MoveToRecycleBin(string fullPath) =>
-        FileSystem.DeleteFile(fullPath, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
 
     public async Task<WorkingTreeStatus> GetStatusAsync(string repositoryPath, CancellationToken cancellationToken = default)
     {

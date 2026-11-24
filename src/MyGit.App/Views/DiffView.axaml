@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="using:MyGit.App.Services"
              xmlns:vm="using:MyGit.App.ViewModels.Changes"
              x:Class="MyGit.App.Views.DiffView"
              x:DataType="vm:DiffViewModel">
@@ -40,7 +41,7 @@
           </StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
             <TextBlock Text="{Binding SelectionText}" FontWeight="SemiBold" />
-            <TextBlock Classes="caption" Text="Shift+click for a range · Ctrl+click to add or remove" VerticalAlignment="Center" />
+            <TextBlock Classes="caption" Text="{x:Static services:Hotkeys.DiffPickTip}" VerticalAlignment="Center" />
           </StackPanel>
         </DockPanel>
       </Border>

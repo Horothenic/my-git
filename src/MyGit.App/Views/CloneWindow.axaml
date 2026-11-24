@@ -110,7 +110,7 @@
 
     <TextBlock Classes="caption" TextWrapping="Wrap">
       <Run Text="Into " />
-      <Run Text="{Binding CloningTarget}" FontFamily="Cascadia Mono, Consolas, monospace"
+      <Run Text="{Binding CloningTarget}" FontFamily="Cascadia Mono, Consolas, Menlo, monospace"
            Foreground="{DynamicResource TextPrimaryBrush}" />
     </TextBlock>
 

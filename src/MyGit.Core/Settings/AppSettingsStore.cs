@@ -18,10 +18,7 @@ public sealed class AppSettingsStore
         Settings = Load();
     }
 
-    public static string DefaultFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "MyGit",
-        "settings.json");
+    public static string DefaultFilePath => Platform.AppPaths.DataFile("settings.json");
 
     public AppSettings Settings { get; }
 

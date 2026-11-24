@@ -86,7 +86,7 @@
             <TextBlock Classes="caption" Text="{Binding DetailsMeta}" TextWrapping="Wrap" />
             <Button Classes="link" Command="{Binding CopyDetailsShaCommand}" ToolTip.Tip="Copy the full commit id" Padding="0">
               <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Text="{Binding DetailsShortSha}" FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" />
+                <TextBlock Text="{Binding DetailsShortSha}" FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12" />
                 <mi:MaterialIcon Kind="ContentCopy" Width="12" Height="12" />
               </StackPanel>
             </Button>

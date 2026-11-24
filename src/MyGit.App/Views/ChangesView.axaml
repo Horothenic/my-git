@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:services="using:MyGit.App.Services"
              xmlns:vm="using:MyGit.App.ViewModels.Changes"
              xmlns:views="using:MyGit.App.Views"
              xmlns:changes="using:MyGit.Core.Changes"
@@ -67,7 +68,7 @@
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
             <Button Classes="header-button" Command="{Binding ToggleHiddenViewCommand}"
                     Classes.on="{Binding IsShowingHidden}"
-                    ToolTip.Tip="Show hidden files (Ctrl+H). Select files and press H to hide or unhide them.">
+                    ToolTip.Tip="{x:Static services:Hotkeys.ShowHiddenTip}">
               <StackPanel Orientation="Horizontal" Spacing="4">
                 <mi:MaterialIcon Kind="EyeOffOutline" Width="14" Height="14" IsVisible="{Binding IsShowingChanges}" />
                 <mi:MaterialIcon Kind="EyeOutline" Width="14" Height="14" IsVisible="{Binding IsShowingHidden}" />
@@ -390,7 +391,7 @@
           <TextBox PlaceholderText="Description" Text="{Binding Description}" AcceptsReturn="True" TextWrapping="Wrap"
                    MinHeight="60" MaxHeight="200" IsEnabled="{Binding IsNotCommitting}" />
           <DockPanel>
-            <Button DockPanel.Dock="Right" Classes="accent" Command="{Binding CommitCommand}" ToolTip.Tip="Ctrl+Enter">
+            <Button DockPanel.Dock="Right" Classes="accent" Command="{Binding CommitCommand}" ToolTip.Tip="{x:Static services:Hotkeys.CommitTip}">
               <StackPanel Orientation="Horizontal" Spacing="6">
                 <mi:MaterialIcon Kind="Loading" Width="14" Height="14" Classes="spin" IsVisible="{Binding IsCommitting}" />
                 <TextBlock Text="{Binding CommitButtonText}" />
@@ -415,7 +416,7 @@
               <mi:MaterialIcon Kind="CheckCircleOutline" Width="16" Height="16" Foreground="{DynamicResource SuccessBrush}" />
               <TextBlock Text="{Binding LastCommitTitle}" Foreground="{DynamicResource SuccessBrush}" TextTrimming="CharacterEllipsis" />
               <TextBlock Classes="caption" Text="{Binding LastCommitDetails}" VerticalAlignment="Center"
-                         FontFamily="Cascadia Mono, Consolas, monospace" />
+                         FontFamily="Cascadia Mono, Consolas, Menlo, monospace" />
             </StackPanel>
           </DockPanel>
         </Border>

@@ -23,7 +23,7 @@
       <Border Background="{DynamicResource PanelBackgroundBrush}"
               BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
               CornerRadius="6" Padding="16,8">
-        <SelectableTextBlock Text="{Binding UserCode}" FontFamily="Cascadia Mono, Consolas, monospace"
+        <SelectableTextBlock Text="{Binding UserCode}" FontFamily="Cascadia Mono, Consolas, Menlo, monospace"
                              FontSize="24" LetterSpacing="3" />
       </Border>
       <Button Command="{Binding CopyCodeCommand}" VerticalAlignment="Center" ToolTip.Tip="Copy code">

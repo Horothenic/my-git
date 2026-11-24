@@ -19,10 +19,7 @@ public sealed class RepositoryStore
         Load();
     }
 
-    public static string DefaultFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "MyGit",
-        "repositories.json");
+    public static string DefaultFilePath => Platform.AppPaths.DataFile("repositories.json");
 
     public IReadOnlyList<RepositoryInfo> Repositories => _repositories;
 
