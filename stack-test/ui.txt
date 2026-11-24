@@ -1,1 +1,2 @@
 UI: bag view
+UI: slot count
