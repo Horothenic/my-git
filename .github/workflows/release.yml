@@ -70,9 +70,10 @@ jobs:
         run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
-      # Not signed by Apple yet (no Developer ID): the first open needs the quarantine step; updates then work as usual.
+      # Ad-hoc signed ("-"), which Apple Silicon needs to run it at all. Not signed by Apple yet (no Developer ID):
+      # the first open needs the quarantine step; updates then work as usual.
       - name: Pack
-        run: vpk pack --packId MyGit --packVersion ${{ env.VERSION }} --packDir publish --mainExe MyGit --packTitle "My Git" --packAuthors Horothenic --bundleId com.horothenic.mygit --icon branding/my-git.icns
+        run: vpk pack --packId MyGit --packVersion ${{ env.VERSION }} --packDir publish --mainExe MyGit --packTitle "My Git" --packAuthors Horothenic --bundleId com.horothenic.mygit --icon branding/my-git.icns --signAppIdentity "-"
 
       - name: Add to the GitHub Release
         run: vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --merge --releaseName "My Git ${{ env.VERSION }}" --tag ${{ github.ref_name }}

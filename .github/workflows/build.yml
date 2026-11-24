@@ -69,5 +69,5 @@ jobs:
       - name: Check release packing
         run: |
           dotnet tool install --global vpk --version 1.2.161
-          vpk pack --packId MyGit --packVersion 0.0.1 --packDir publish --mainExe MyGit --packTitle "My Git" --packAuthors Horothenic --bundleId com.horothenic.mygit --icon branding/my-git.icns --outputDir releases-check
+          vpk pack --packId MyGit --packVersion 0.0.1 --packDir publish --mainExe MyGit --packTitle "My Git" --packAuthors Horothenic --bundleId com.horothenic.mygit --icon branding/my-git.icns --signAppIdentity "-" --outputDir releases-check
           ls -la releases-check
