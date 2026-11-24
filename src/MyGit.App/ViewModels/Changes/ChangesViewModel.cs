@@ -881,8 +881,9 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
             }
         }
 
-        ConflictCount = conflicts.Count;
+        // Selection first: the window may open the first conflict when the count changes.
         SelectedConflict = ConflictFiles.FirstOrDefault(c => c.Path == selected);
+        ConflictCount = conflicts.Count;
     }
 
     /// <summary>Keeps the diff in sync after a refresh: reload it, or clear it if the file left its list.</summary>

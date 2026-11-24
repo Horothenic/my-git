@@ -109,6 +109,7 @@ public sealed partial class StacksViewModel : ObservableObject
     private string? _resumeStack;
     private bool _pushAfterResume;
     private bool _refreshing;
+    private bool _resuming;
     private int _showVersion;
 
     public StacksViewModel(
@@ -253,7 +254,15 @@ public sealed partial class StacksViewModel : ObservableObject
             _resumeStack = null;
             _pushAfterResume = false;
             SelectedStack = toResume;
-            await (push ? PushStackAsync() : RestackAsync());
+            _resuming = true;
+            try
+            {
+                await (push ? PushStackAsync() : RestackAsync());
+            }
+            finally
+            {
+                _resuming = false;
+            }
         }
     }
 
@@ -485,7 +494,7 @@ public sealed partial class StacksViewModel : ObservableObject
                 case RebaseOutcome.Done:
                     NoticeRaised?.Invoke($"Restacked {stack.Name}");
                     break;
-                case RebaseOutcome.UpToDate:
+                case RebaseOutcome.UpToDate when !_resuming: // after Continue, "Rebase finished" already says it
                     NoticeRaised?.Invoke($"{stack.Name} is already in place");
                     break;
                 case RebaseOutcome.Conflict:
@@ -493,8 +502,8 @@ public sealed partial class StacksViewModel : ObservableObject
                     _resumeStack = stack.Name;
                     _pushAfterResume = pushAfter;
                     MessageRaised?.Invoke(pushAfter
-                        ? "Restacking stopped on a conflict. Resolve it in the Changes tab and press Continue: the rest of the stack follows, then it's pushed."
-                        : "Restacking stopped on a conflict. Resolve it in the Changes tab and press Continue: the rest of the stack follows.");
+                        ? "Restacking stopped on a conflict. Resolve it under Conflicts and press Continue: the rest of the stack follows, then it's pushed."
+                        : "Restacking stopped on a conflict. Resolve it under Conflicts and press Continue: the rest of the stack follows.");
                     break;
             }
         });

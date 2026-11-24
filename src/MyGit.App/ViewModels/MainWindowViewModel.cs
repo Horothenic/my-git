@@ -18,6 +18,9 @@ public sealed partial class MainWindowViewModel : ObservableObject
     private readonly ThemeService _themeService;
     private readonly IDialogService _dialogs;
 
+    // Switch to the Changes tab once per stop, so you can still look elsewhere while resolving.
+    private bool _conflictsShown;
+
     public MainWindowViewModel(
         RepositoryStore repositoryStore,
         RepositoryService repositoryService,
@@ -58,6 +61,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
         Stacks.Pushed += () => PullRequests.RefreshAsync(CurrentRepository?.Path, PullRequests.Branch, askGitHub: true);
         Branches.StackOnTopRequested += () => Stacks.StackOnTopAsync();
         Operation.Ended += Stacks.OnOperationEnded;
+        Operation.Ended += _ => Message = null; // "stopped on a conflict…" no longer applies
         Sync.RemoteUpdated += () => PullRequests.RefreshAsync(CurrentRepository?.Path, Changes.BranchName.Length > 0 ? Changes.BranchName : null, askGitHub: true);
         Operation.MessageRaised += ShowMessage;
         Operation.NoticeRaised += Sync.ShowNotice;
@@ -67,6 +71,29 @@ public sealed partial class MainWindowViewModel : ObservableObject
             if (e.PropertyName == nameof(Operation.IsActive))
             {
                 OnPropertyChanged(nameof(IsStatusBarVisible));
+                OnPropertyChanged(nameof(IsSuccessBar));
+            }
+
+            // A rebase (from anywhere: Stacks, History, a branch) stopped on conflicts: show where to resolve them.
+            if (e.PropertyName == nameof(Operation.ConflictCount) && Operation.IsActive && Operation.ConflictCount > 0 && !_conflictsShown)
+            {
+                _conflictsShown = true;
+                SelectedTabIndex = 0;
+                Changes.SelectedConflict ??= Changes.ConflictFiles.FirstOrDefault();
+            }
+
+            if (e.PropertyName == nameof(Operation.IsActive) && !Operation.IsActive)
+            {
+                _conflictsShown = false;
+            }
+        };
+        Sync.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Sync.HasNotice))
+            {
+                OnPropertyChanged(nameof(IsStatusBarVisible));
+                OnPropertyChanged(nameof(IsNoticeShown));
+                OnPropertyChanged(nameof(IsSuccessBar));
             }
         };
         Branches.RebaseRequested += (onto, label) => Operation.StartRebaseAsync(BranchName, onto, label);
@@ -134,13 +161,23 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public Stacks.StacksViewModel Stacks { get; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasMessage), nameof(IsStatusBarVisible))]
+    [NotifyPropertyChangedFor(nameof(HasMessage), nameof(IsStatusBarVisible), nameof(IsNoticeShown), nameof(IsSuccessBar))]
     public partial string? Message { get; set; }
 
     public bool HasMessage => Message is not null;
 
-    /// <summary>The bottom bar shows while a rebase (or merge, ...) is stopped, or a message is up.</summary>
-    public bool IsStatusBarVisible => HasMessage || Operation.IsActive;
+    /// <summary>The bottom bar shows while a rebase (or merge, ...) is stopped, a warning is up, or a short note.</summary>
+    public bool IsStatusBarVisible => HasMessage || Operation.IsActive || Sync.HasNotice;
+
+    /// <summary>A green note shows when there's no warning to show instead.</summary>
+    public bool IsNoticeShown => Sync.HasNotice && !HasMessage;
+
+    /// <summary>The bar is green when all it shows is a note.</summary>
+    public bool IsSuccessBar => IsNoticeShown && !Operation.IsActive;
+
+    /// <summary>0 Changes, 1 History, 2 Stacks.</summary>
+    [ObservableProperty]
+    public partial int SelectedTabIndex { get; set; }
 
     /// <summary>Reopens the repository that was open last time.</summary>
     public async Task InitializeAsync()

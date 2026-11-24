@@ -394,6 +394,10 @@
     <Setter Property="Padding" Value="10,2" />
     <Setter Property="MinHeight" Value="28" />
   </Style>
+  <Style Selector="Border.status-bar.success">
+    <Setter Property="Background" Value="{DynamicResource DiffAddedBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+  </Style>
   <Style Selector="Button.status-button">
     <Setter Property="Padding" Value="10,1" />
     <Setter Property="MinHeight" Value="22" />
