@@ -95,12 +95,14 @@ public sealed class App : Application
 
             main = viewModel;
             viewModel.UseShell(shell);
+            viewModel.UseUpdates(new UpdatesViewModel(accounts));
             viewModel.Operation.AutoStashByDefault = () => settingsStore.Settings.AutoStashByDefault;
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;
 
             _ = viewModel.InitializeAsync();
+            viewModel.Updates?.Start();
         }
 
         base.OnFrameworkInitializationCompleted();

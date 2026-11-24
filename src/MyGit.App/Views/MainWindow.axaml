@@ -85,6 +85,15 @@
                         <TextBlock Text="Keyboard shortcuts" />
                       </StackPanel>
                     </Button>
+                    <Button Classes="list-row" Command="{Binding Updates.CheckNowCommand, FallbackValue={x:Null}}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Update" Width="16" Height="16" />
+                        <StackPanel>
+                          <TextBlock Text="Check for updates" />
+                          <TextBlock Classes="caption" Text="{Binding Updates.VersionText, FallbackValue=''}" />
+                        </StackPanel>
+                      </StackPanel>
+                    </Button>
                   </StackPanel>
 
                   <!-- Signed in -->
@@ -117,6 +126,15 @@
                       <StackPanel Orientation="Horizontal" Spacing="8">
                         <mi:MaterialIcon Kind="KeyboardOutline" Width="16" Height="16" />
                         <TextBlock Text="Keyboard shortcuts" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding Updates.CheckNowCommand, FallbackValue={x:Null}}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Update" Width="16" Height="16" />
+                        <StackPanel>
+                          <TextBlock Text="Check for updates" />
+                          <TextBlock Classes="caption" Text="{Binding Updates.VersionText, FallbackValue=''}" />
+                        </StackPanel>
                       </StackPanel>
                     </Button>
                     <Button Classes="list-row" Command="{Binding Account.SignOutCommand}">
@@ -437,6 +455,14 @@
                   IsVisible="{Binding Operation.CanSkip}" ToolTip.Tip="Drop this commit's changes and go on" />
           <Button Classes="accent status-button" Content="Continue" Command="{Binding Operation.ContinueCommand}"
                   ToolTip.ShowOnDisabled="True" ToolTip.Tip="Available once every conflict is resolved" />
+        </StackPanel>
+
+        <!-- A downloaded update: restart now, or it's applied on the next start -->
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding IsUpdateShown}" Margin="12,0,0,0">
+          <mi:MaterialIcon Kind="Update" Width="14" Height="14" Foreground="{DynamicResource SuccessBrush}" />
+          <TextBlock Text="{Binding Updates.ReadyText, FallbackValue=''}" Foreground="{DynamicResource SuccessBrush}" VerticalAlignment="Center" />
+          <Button Classes="accent status-button" Content="Restart to update" Command="{Binding Updates.RestartToUpdateCommand, FallbackValue={x:Null}}"
+                  ToolTip.Tip="Closes My Git, puts the new version in place and opens it again. Or keep working: it's applied next time you start My Git." />
         </StackPanel>
 
         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding Operation.IsActive}">

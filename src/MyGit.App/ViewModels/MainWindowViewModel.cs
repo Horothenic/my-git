@@ -167,13 +167,13 @@ public sealed partial class MainWindowViewModel : ObservableObject
     public bool HasMessage => Message is not null;
 
     /// <summary>The bottom bar shows while a rebase (or merge, ...) is stopped, a warning is up, or a short note.</summary>
-    public bool IsStatusBarVisible => HasMessage || Operation.IsActive || Sync.HasNotice;
+    public bool IsStatusBarVisible => HasMessage || Operation.IsActive || Sync.HasNotice || IsUpdateShown;
 
     /// <summary>A green note shows when there's no warning to show instead.</summary>
     public bool IsNoticeShown => Sync.HasNotice && !HasMessage;
 
     /// <summary>The bar is green when all it shows is a note.</summary>
-    public bool IsSuccessBar => IsNoticeShown && !Operation.IsActive;
+    public bool IsSuccessBar => (IsNoticeShown || IsUpdateShown) && !HasMessage && !Operation.IsActive;
 
     /// <summary>0 Changes, 1 History, 2 Stacks.</summary>
     [ObservableProperty]

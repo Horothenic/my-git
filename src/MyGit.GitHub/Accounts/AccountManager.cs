@@ -82,6 +82,12 @@ public sealed class AccountManager : IGitEnvironmentProvider
         AccountChanged?.Invoke();
     }
 
+    /// <summary>
+    /// The signed-in token, for code that talks to GitHub without Octokit (the updater reading My Git's
+    /// private releases). Null when signed out. Never log or show it.
+    /// </summary>
+    public string? AccessToken => _token;
+
     /// <summary>An API client for the signed-in user, or null when signed out.</summary>
     public GitHubClient? CreateClient() => _token is null ? null : CreateClient(_token);
 

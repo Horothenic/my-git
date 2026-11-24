@@ -13,6 +13,7 @@
     <!-- Git and GitHub -->
     <PackageVersion Include="LibGit2Sharp" Version="0.32.0" />
     <PackageVersion Include="Octokit" Version="14.0.0" />
+    <PackageVersion Include="Velopack" Version="1.2.161" />
     <PackageVersion Include="Meziantou.Framework.Win32.CredentialManager" Version="3.0.13" />
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />

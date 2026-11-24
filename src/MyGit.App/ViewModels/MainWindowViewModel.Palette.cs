@@ -34,6 +34,29 @@ public sealed partial class MainWindowViewModel
 
     public CommandPaletteViewModel Palette { get; } = new();
 
+    /// <summary>My Git's own updates (set by the app at startup).</summary>
+    public UpdatesViewModel? Updates { get; private set; }
+
+    /// <summary>The bottom bar's "My Git 1.2 is ready · Restart to update" (not during a stopped rebase).</summary>
+    public bool IsUpdateShown => Updates?.IsReady == true && !Operation.IsActive;
+
+    public void UseUpdates(UpdatesViewModel updates)
+    {
+        Updates = updates;
+        updates.NoticeRaised += Sync.ShowNotice;
+        updates.MessageRaised += ShowMessage;
+        updates.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(UpdatesViewModel.IsReady))
+            {
+                OnPropertyChanged(nameof(IsUpdateShown));
+                OnPropertyChanged(nameof(IsStatusBarVisible));
+                OnPropertyChanged(nameof(IsSuccessBar));
+            }
+        };
+        OnPropertyChanged(nameof(Updates));
+    }
+
     /// <summary>"Open in VS Code" (or whichever editor Settings picks).</summary>
     public string OpenInEditorText => _shell?.EditorName is { } editor ? $"Open in {editor}" : "Open in editor (none found)";
 
@@ -172,6 +195,7 @@ public sealed partial class MainWindowViewModel
             new("Switch theme (dark / light)", MaterialIconKind.ThemeLightDark, ToggleThemeCommand),
             new("Settings…", MaterialIconKind.CogOutline, OpenSettingsCommand),
             new("Keyboard shortcuts", MaterialIconKind.KeyboardOutline, ShowShortcutsCommand),
+            new($"Check for updates ({Updates?.Version ?? "dev build"})", MaterialIconKind.Update, Updates?.CheckNowCommand ?? RefreshCommand),
             Account.IsSignedIn
                 ? new("Sign out of GitHub", MaterialIconKind.Logout, Account.SignOutCommand)
                 : new("Sign in to GitHub…", MaterialIconKind.Github, Account.SignInCommand),
