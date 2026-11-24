@@ -64,3 +64,10 @@ jobs:
           name: MyGit-mac
           path: MyGit-mac.zip
           retention-days: 14
+
+      # The same packing a release does (Velopack), so a mistake shows up here and not on a tag.
+      - name: Check release packing
+        run: |
+          dotnet tool install --global vpk --version 1.2.161
+          vpk pack --packId MyGit --packVersion 0.0.1 --packDir publish --mainExe MyGit --packTitle "My Git" --packAuthors Horothenic --bundleId com.horothenic.mygit --icon branding/my-git.icns --outputDir releases-check
+          ls -la releases-check

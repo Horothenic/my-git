@@ -1,7 +1,8 @@
 name: Release
 
 # Push a version tag to publish a release: git tag v1.2.0 && git push origin v1.2.0
-# The release gets Setup.exe (first install) and the update packages the installed app downloads.
+# The release gets Setup.exe for Windows and My Git.app (zip and .pkg) for Apple Silicon Macs,
+# plus each platform's update packages and feed, which the installed apps check for updates.
 on:
   push:
     tags: ['v*']
@@ -10,7 +11,7 @@ permissions:
   contents: write # create the GitHub Release and upload its files
 
 jobs:
-  release:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,3 +45,34 @@ jobs:
 
       - name: Publish the GitHub Release
         run: vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --publish --releaseName "My Git ${{ env.VERSION }}" --tag ${{ github.ref_name }}
+
+  # Runs after Windows created the release, and adds the Mac files (and the Mac update feed) to it.
+  mac:
+    needs: windows
+    runs-on: macos-latest # Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Version from the tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Publish for Apple Silicon
+        run: dotnet publish src/MyGit.App/MyGit.App.csproj --configuration Release --runtime osx-arm64 --self-contained -p:Version=${{ env.VERSION }} --output publish
+
+      - name: Install vpk
+        run: dotnet tool install --global vpk --version 1.2.161
+
+      - name: Download the previous Mac release
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      # Not signed by Apple yet (no Developer ID): the first open needs the quarantine step; updates then work as usual.
+      - name: Pack
+        run: vpk pack --packId MyGit --packVersion ${{ env.VERSION }} --packDir publish --mainExe MyGit --packTitle "My Git" --packAuthors Horothenic --bundleId com.horothenic.mygit --icon branding/my-git.icns
+
+      - name: Add to the GitHub Release
+        run: vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --merge --releaseName "My Git ${{ env.VERSION }}" --tag ${{ github.ref_name }}
