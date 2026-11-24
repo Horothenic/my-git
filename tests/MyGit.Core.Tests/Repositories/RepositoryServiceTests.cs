@@ -16,8 +16,12 @@ public sealed class RepositoryServiceTests
         var root = await _service.FindRootAsync(subfolder);
 
         Assert.NotNull(root);
-        Assert.Equal(Path.GetFullPath(repository.Path), root, ignoreCase: true);
+        Assert.Equal(Real(Path.GetFullPath(repository.Path)), Real(root!), ignoreCase: true);
     }
+
+    // On a Mac the temp folder /var/... is really /private/var/..., and git reports the real one.
+    private static string Real(string path) =>
+        OperatingSystem.IsMacOS() && path.StartsWith("/private/", StringComparison.Ordinal) ? path["/private".Length..] : path;
 
     [Fact]
     public async Task FindRootAsync_ReturnsNull_ForPlainFolder()

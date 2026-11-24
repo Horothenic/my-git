@@ -8,12 +8,16 @@ public sealed class RepositoryStoreTests : IDisposable
 
     private string FilePath => Path.Combine(_folder, "settings", "repositories.json");
 
+    // A folder under <drive root>\code on Windows or /code on a Mac; never created.
+    private static string Code(string name) =>
+        Path.Combine(Path.GetPathRoot(Path.GetTempPath())!, "code", name);
+
     [Fact]
     public void Add_PersistsAcrossInstances()
     {
         var store = new RepositoryStore(FilePath);
-        store.Add(RepositoryInfo.FromPath(@"C:\code\beta"));
-        store.Add(RepositoryInfo.FromPath(@"C:\code\alpha"));
+        store.Add(RepositoryInfo.FromPath(Code("beta")));
+        store.Add(RepositoryInfo.FromPath(Code("alpha")));
 
         var reloaded = new RepositoryStore(FilePath);
 
@@ -25,8 +29,8 @@ public sealed class RepositoryStoreTests : IDisposable
     {
         var store = new RepositoryStore(FilePath);
 
-        Assert.True(store.Add(RepositoryInfo.FromPath(@"C:\code\my-git")));
-        Assert.False(store.Add(RepositoryInfo.FromPath(@"c:\CODE\my-git\")));
+        Assert.True(store.Add(RepositoryInfo.FromPath(Code("my-git"))));
+        Assert.False(store.Add(RepositoryInfo.FromPath(Code("my-git").ToUpperInvariant() + Path.DirectorySeparatorChar)));
         Assert.Single(store.Repositories);
     }
 
@@ -34,9 +38,9 @@ public sealed class RepositoryStoreTests : IDisposable
     public void Remove_DeletesRepository()
     {
         var store = new RepositoryStore(FilePath);
-        store.Add(RepositoryInfo.FromPath(@"C:\code\my-git"));
+        store.Add(RepositoryInfo.FromPath(Code("my-git")));
 
-        Assert.True(store.Remove(@"C:\code\my-git"));
+        Assert.True(store.Remove(Code("my-git")));
         Assert.Empty(new RepositoryStore(FilePath).Repositories);
     }
 
@@ -55,7 +59,7 @@ public sealed class RepositoryStoreTests : IDisposable
     [Fact]
     public void FromPath_UsesFolderNameAsDisplayName()
     {
-        Assert.Equal("my-git", RepositoryInfo.FromPath(@"C:\code\my-git\").Name);
+        Assert.Equal("my-git", RepositoryInfo.FromPath(Code("my-git") + Path.DirectorySeparatorChar).Name);
     }
 
     public void Dispose() => TempRepository.DeleteFolder(_folder);
