@@ -26,6 +26,7 @@
       <SolidColorBrush x:Key="HunkHeaderTextBrush" Color="#8DB8F0" />
       <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#3D2E00" />
       <SolidColorBrush x:Key="WarningTextBrush" Color="#E3B341" />
+      <SolidColorBrush x:Key="MergedBrush" Color="#A371F7" />
       <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#4493F8" />
       <SolidColorBrush x:Key="BadgeTextBrush" Color="#0D1117" />
     </ResourceDictionary>
@@ -50,6 +51,7 @@
       <SolidColorBrush x:Key="HunkHeaderTextBrush" Color="#0550AE" />
       <SolidColorBrush x:Key="WarningBackgroundBrush" Color="#FFF8C5" />
       <SolidColorBrush x:Key="WarningTextBrush" Color="#7D4E00" />
+      <SolidColorBrush x:Key="MergedBrush" Color="#8250DF" />
       <SolidColorBrush x:Key="BadgeBackgroundBrush" Color="#0969DA" />
       <SolidColorBrush x:Key="BadgeTextBrush" Color="#FFFFFF" />
     </ResourceDictionary>

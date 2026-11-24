@@ -96,6 +96,13 @@ public sealed class DialogService : IDialogService
         return viewModel.Started;
     }
 
+    public async Task<bool> ShowCreatePullRequestAsync(ViewModels.PullRequests.CreatePullRequestViewModel viewModel)
+    {
+        var window = new CreatePullRequestWindow { DataContext = viewModel };
+        await window.ShowDialog(_owner);
+        return viewModel.Created is not null;
+    }
+
     private async Task<bool> ShowSignInAsync(Window owner)
     {
         var viewModel = _createSignIn();

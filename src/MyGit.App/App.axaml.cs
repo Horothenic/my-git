@@ -72,7 +72,12 @@ public sealed class App : Application
                 new HistoryViewModel(historyService, new CommitActionsService(git), git, diffService, dialogs, shell),
                 new BranchesViewModel(new BranchService(git), historyService, dialogs),
                 new UndoViewModel(new MyGit.Core.Undo.UndoService(git), dialogs),
-                new OperationViewModel(new MyGit.Core.Operations.OperationService(git), new MyGit.Core.Operations.RebaseService(git), dialogs));
+                new OperationViewModel(new MyGit.Core.Operations.OperationService(git), new MyGit.Core.Operations.RebaseService(git), dialogs),
+                new ViewModels.PullRequests.PullRequestsViewModel(
+                    new MyGit.GitHub.PullRequests.PullRequestService(accounts), new MyGit.Core.PullRequests.PullRequestDraftService(git), repositoryService, dialogs, shell));
+
+            // Signing in or out changes which pull requests we can see.
+            accounts.AccountChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = viewModel.PullRequests.OnAccountChangedAsync());
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;
