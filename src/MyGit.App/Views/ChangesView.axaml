@@ -283,7 +283,7 @@
                         ToolTip.Tip="Edit the whole file as plain text" />
                 <Button Classes="header-button" Content="Back to conflicts" Command="{Binding Resolver.BackToConflictsCommand}" IsVisible="{Binding Resolver.IsEditingByHand}" />
               </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <Button Classes="header-button" Command="{Binding Resolver.PreviousCommand}" ToolTip.Tip="Previous conflict" IsVisible="{Binding Resolver.IsConflictView}">
                   <mi:MaterialIcon Kind="ChevronUp" Width="14" Height="14" />
                 </Button>
@@ -291,19 +291,27 @@
                   <mi:MaterialIcon Kind="ChevronDown" Width="14" Height="14" />
                 </Button>
                 <TextBlock Text="{Binding Resolver.PositionText}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" />
-                <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource ConflictCurrentHeaderBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Resolver.CurrentLegend}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="260" Margin="0,0,8,0" />
-                <Border Width="10" Height="10" CornerRadius="2" Background="{DynamicResource ConflictIncomingHeaderBrush}" VerticalAlignment="Center" />
-                <TextBlock Text="{Binding Resolver.IncomingLegend}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="320" />
               </StackPanel>
+
+              <!-- Which side is which; one line that shortens with "…" when the panel is narrow -->
+              <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,0">
+                <Run Text="■ " Foreground="{DynamicResource ConflictCurrentHeaderBrush}" />
+                <Run Text="{Binding Resolver.CurrentLegend}" />
+                <Run Text="     ■ " Foreground="{DynamicResource ConflictIncomingHeaderBrush}" />
+                <Run Text="{Binding Resolver.IncomingLegend}" />
+              </TextBlock>
             </DockPanel>
           </Border>
 
           <Border DockPanel.Dock="Bottom" Classes="selection-bar" BorderThickness="0,1,0,0">
             <DockPanel>
-              <Button DockPanel.Dock="Right" Classes="accent" Content="Save and mark resolved" Command="{Binding Resolver.SaveCommand}" />
+              <Button x:Name="SaveResolvedButton" DockPanel.Dock="Right" Classes="accent" Content="Save and mark resolved" Command="{Binding Resolver.SaveCommand}">
+                <Button.RenderTransform>
+                  <TranslateTransform />
+                </Button.RenderTransform>
+              </Button>
               <TextBlock Classes="caption" VerticalAlignment="Center" TextWrapping="Wrap"
-                         Text="Undecided conflicts keep their markers, and the file stays under Conflicts until they're gone." />
+                         Text="Decide every conflict (or edit them away by hand), then save." />
             </DockPanel>
           </Border>
 

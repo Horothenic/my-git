@@ -364,15 +364,15 @@
         </StackPanel>
 
         <!-- The latest message, after the operation (or alone), with × to dismiss -->
-        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding HasMessage}" Margin="16,0,0,0">
-          <mi:MaterialIcon Kind="AlertOutline" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
-          <TextBlock Text="{Binding Message}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6" VerticalAlignment="Center" IsVisible="{Binding HasMessage}" Margin="16,0,0,0">
+          <mi:MaterialIcon Grid.Column="0" Kind="AlertOutline" Width="14" Height="14" Foreground="{DynamicResource WarningTextBrush}" />
+          <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
                      TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Message}" />
-          <Button Padding="3" Background="Transparent" VerticalAlignment="Center"
+          <Button Grid.Column="2" Padding="3" Background="Transparent" VerticalAlignment="Center" HorizontalAlignment="Left"
                   Command="{Binding DismissMessageCommand}" ToolTip.Tip="Dismiss">
             <mi:MaterialIcon Kind="Close" Width="12" Height="12" Foreground="{DynamicResource WarningTextBrush}" />
           </Button>
-        </StackPanel>
+        </Grid>
       </DockPanel>
     </Border>
 

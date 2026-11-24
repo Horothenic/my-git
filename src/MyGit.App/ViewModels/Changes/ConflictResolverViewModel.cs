@@ -106,6 +106,9 @@ public sealed partial class ConflictResolverViewModel : ObservableObject
     /// <summary>Raised when the view should scroll to the current conflict.</summary>
     public event Action<ConflictBlockViewModel>? ScrollRequested;
 
+    /// <summary>Raised when Save was pressed with conflicts still undecided (the view shakes the button).</summary>
+    public event Action? SaveRefused;
+
     /// <summary>True when a conflicted text file is loaded (otherwise the plain helpers are shown).</summary>
     [ObservableProperty]
     public partial bool IsActive { get; set; }
@@ -202,9 +205,30 @@ public sealed partial class ConflictResolverViewModel : ObservableObject
         Show(file);
     }
 
-    /// <summary>Saves the result to the file; the Changes tab marks it resolved if no markers are left.</summary>
+    /// <summary>
+    /// Saves the result and marks the file resolved. With conflicts still undecided (or markers left in
+    /// hand-edited text) nothing is saved: the button shakes and the first undecided conflict comes into view.
+    /// </summary>
     [RelayCommand]
-    private Task SaveAsync() => _save?.Invoke(Result) ?? Task.CompletedTask;
+    private async Task SaveAsync()
+    {
+        var undecided = IsEditingByHand ? ConflictFile.Parse(HandText) is not null : UnresolvedCount > 0;
+        if (undecided)
+        {
+            if (!IsEditingByHand && Blocks.FirstOrDefault(block => block.IsUnresolved) is { } first)
+            {
+                GoTo(first.Index);
+            }
+
+            SaveRefused?.Invoke();
+            return;
+        }
+
+        if (_save is not null)
+        {
+            await _save(Result);
+        }
+    }
 
     private bool CanGoPrevious() => CurrentIndex > 0;
 
