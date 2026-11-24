@@ -11,6 +11,19 @@
         MinWidth="820" MinHeight="500"
         WindowStartupLocation="CenterScreen">
 
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenPaletteCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding Sync.FetchCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+L" Command="{Binding Sync.PullCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+U" Command="{Binding Sync.PushCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding Branches.NewBranchCommand}" />
+    <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
+    <KeyBinding Gesture="Ctrl+D1" Command="{Binding SelectTabCommand}" CommandParameter="0" />
+    <KeyBinding Gesture="Ctrl+D2" Command="{Binding SelectTabCommand}" CommandParameter="1" />
+    <KeyBinding Gesture="Ctrl+D3" Command="{Binding SelectTabCommand}" CommandParameter="2" />
+  </Window.KeyBindings>
+
+  <Panel>
   <DockPanel>
 
     <!-- ===== Toolbar ===== -->
@@ -60,6 +73,18 @@
                         <TextBlock Text="Sign in with GitHub" />
                       </StackPanel>
                     </Button>
+                    <Button Classes="list-row" Command="{Binding OpenSettingsCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="CogOutline" Width="16" Height="16" />
+                        <TextBlock Text="Settings…" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding ShowShortcutsCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="KeyboardOutline" Width="16" Height="16" />
+                        <TextBlock Text="Keyboard shortcuts" />
+                      </StackPanel>
+                    </Button>
                   </StackPanel>
 
                   <!-- Signed in -->
@@ -80,6 +105,18 @@
                       <StackPanel Orientation="Horizontal" Spacing="8">
                         <mi:MaterialIcon Kind="OpenInNew" Width="16" Height="16" />
                         <TextBlock Text="View profile on GitHub" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding OpenSettingsCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="CogOutline" Width="16" Height="16" />
+                        <TextBlock Text="Settings…" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding ShowShortcutsCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="KeyboardOutline" Width="16" Height="16" />
+                        <TextBlock Text="Keyboard shortcuts" />
                       </StackPanel>
                     </Button>
                     <Button Classes="list-row" Command="{Binding Account.SignOutCommand}">
@@ -155,6 +192,34 @@
                       </ItemsControl.ItemTemplate>
                     </ItemsControl>
                   </ScrollViewer>
+
+                  <StackPanel Spacing="2" IsVisible="{Binding HasRepository}">
+                    <TextBlock Classes="caption" Text="This repository" Margin="6,2,0,2" />
+                    <Button Classes="list-row" Command="{Binding OpenInEditorCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="CodeBraces" Width="16" Height="16" />
+                        <TextBlock Text="{Binding OpenInEditorText}" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding OpenInTerminalCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Console" Width="16" Height="16" />
+                        <TextBlock Text="{Binding OpenInTerminalText}" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding ShowRepositoryInExplorerCommand}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="FolderOpenOutline" Width="16" Height="16" />
+                        <TextBlock Text="Show in Explorer" />
+                      </StackPanel>
+                    </Button>
+                    <Button Classes="list-row" Command="{Binding OpenOnGitHubCommand}" IsVisible="{Binding PullRequests.IsGitHubRepository}">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <mi:MaterialIcon Kind="Github" Width="16" Height="16" />
+                        <TextBlock Text="Open on GitHub" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
 
                   <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                     <Button Grid.Column="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
@@ -468,4 +533,30 @@
       </TabControl>
     </Panel>
   </DockPanel>
+
+    <!-- ===== Command palette (Ctrl+Shift+P) ===== -->
+    <Border x:Name="PaletteOverlay" Background="#73000000" IsVisible="{Binding Palette.IsOpen}">
+      <Border Classes="palette" Width="560" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,70,0,0">
+        <DockPanel>
+          <TextBox x:Name="PaletteBox" DockPanel.Dock="Top" Margin="10" PlaceholderText="Type a command, branch or repository…"
+                   Text="{Binding Palette.Query}" />
+          <ListBox x:Name="PaletteList" MaxHeight="420" ItemsSource="{Binding Palette.Items}" SelectedItem="{Binding Palette.SelectedItem}"
+                   Background="Transparent">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:PaletteItem">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Opacity="{Binding Opacity}">
+                  <mi:MaterialIcon Grid.Column="0" Kind="{Binding Icon}" Width="16" Height="16" />
+                  <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  <Border Grid.Column="2" Classes="key" IsVisible="{Binding HasShortcut}">
+                    <TextBlock Text="{Binding Right}" />
+                  </Border>
+                  <TextBlock Grid.Column="2" Classes="caption" Text="{Binding Right}" VerticalAlignment="Center" IsVisible="{Binding !HasShortcut}" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+    </Border>
+  </Panel>
 </Window>

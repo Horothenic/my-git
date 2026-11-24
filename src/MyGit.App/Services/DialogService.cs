@@ -12,14 +12,30 @@ public sealed class DialogService : IDialogService
     private readonly Window _owner;
     private readonly Func<SignInViewModel> _createSignIn;
     private readonly Func<IFolderPicker, CloneViewModel> _createClone;
+    private readonly Func<IFolderPicker, SettingsViewModel> _createSettings;
 
     /// <param name="createClone">Builds the clone view model; gets a folder picker owned by the clone window.</param>
-    public DialogService(Window owner, Func<SignInViewModel> createSignIn, Func<IFolderPicker, CloneViewModel> createClone)
+    /// <param name="createSettings">Builds the Settings view model; gets a folder picker owned by the Settings window.</param>
+    public DialogService(
+        Window owner,
+        Func<SignInViewModel> createSignIn,
+        Func<IFolderPicker, CloneViewModel> createClone,
+        Func<IFolderPicker, SettingsViewModel> createSettings)
     {
         _owner = owner;
         _createSignIn = createSignIn;
         _createClone = createClone;
+        _createSettings = createSettings;
     }
+
+    public async Task ShowSettingsAsync()
+    {
+        var window = new SettingsWindow();
+        window.DataContext = _createSettings(new FolderPicker(window));
+        await window.ShowDialog(_owner);
+    }
+
+    public Task ShowShortcutsAsync() => new ShortcutsWindow().ShowDialog(_owner);
 
     public Task<bool> ShowSignInAsync() => ShowSignInAsync(_owner);
 

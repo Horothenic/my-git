@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MyGit.App.ViewModels"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        x:Class="MyGit.App.Views.SettingsWindow"
+        x:DataType="vm:SettingsViewModel"
+        Icon="/Assets/my-git.ico"
+        Title="Settings"
+        Width="600" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Window.Styles>
+    <Style Selector="TextBlock.section">
+      <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Margin" Value="0,14,0,6" />
+    </Style>
+    <Style Selector="Grid.settings > TextBlock">
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+  </Window.Styles>
+
+  <StackPanel Margin="22,18">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <mi:MaterialIcon Kind="CogOutline" Width="18" Height="18" />
+      <TextBlock FontWeight="SemiBold" FontSize="14" Text="Settings" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <TextBlock Classes="section" Text="APPEARANCE" />
+    <Grid Classes="settings" ColumnDefinitions="160,*" RowDefinitions="Auto,8,Auto">
+      <TextBlock Grid.Row="0" Text="Theme" />
+      <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="16">
+        <RadioButton GroupName="theme" Content="Dark" IsChecked="{Binding IsDark}" />
+        <RadioButton GroupName="theme" Content="Light" IsChecked="{Binding IsLight}" />
+      </StackPanel>
+      <TextBlock Grid.Row="2" Text="Changed files" />
+      <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="16">
+        <RadioButton GroupName="files" Content="Folder tree" IsChecked="{Binding IsTree}" />
+        <RadioButton GroupName="files" Content="Flat list" IsChecked="{Binding IsFlat}" />
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Classes="section" Text="TOOLS" />
+    <Grid Classes="settings" ColumnDefinitions="160,*" RowDefinitions="Auto,8,Auto,8,Auto">
+      <TextBlock Grid.Row="0" Text="Code editor" />
+      <ComboBox Grid.Row="0" Grid.Column="1" Width="280" ItemsSource="{Binding Editors}" SelectedItem="{Binding SelectedEditor}"
+                ToolTip.Tip="For Open in editor (the repository, and files in the Changes tab)" />
+      <TextBlock Grid.Row="2" Text="Terminal" />
+      <ComboBox Grid.Row="2" Grid.Column="1" Width="280" ItemsSource="{Binding Terminals}" SelectedItem="{Binding SelectedTerminal}" />
+      <TextBlock Grid.Row="4" Text="Merge tool" />
+      <ComboBox Grid.Row="4" Grid.Column="1" Width="280" ItemsSource="{Binding MergeTools}" SelectedItem="{Binding SelectedMergeTool}"
+                ToolTip.Tip="Listed first in a conflict's Merge tool menu (when it's installed and fits the file)" />
+    </Grid>
+
+    <TextBlock Classes="section" Text="DEFAULTS" />
+    <Grid Classes="settings" ColumnDefinitions="160,*" RowDefinitions="Auto,8,Auto">
+      <TextBlock Grid.Row="0" Text="Auto-stash" />
+      <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding AutoStashByDefault}"
+                Content="Tick &quot;stash my changes&quot; before a rebase" />
+      <TextBlock Grid.Row="2" Text="Clone into" />
+      <DockPanel Grid.Row="2" Grid.Column="1">
+        <Button DockPanel.Dock="Right" Content="Change…" Command="{Binding ChangeCloneFolderCommand}" Margin="8,0,0,0" />
+        <TextBlock Text="{Binding CloneFolder}" VerticalAlignment="Center" TextTrimming="PrefixCharacterEllipsis"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+      </DockPanel>
+    </Grid>
+
+    <TextBlock Classes="section" Text="GITHUB" />
+    <Grid Classes="settings" ColumnDefinitions="160,*">
+      <TextBlock Text="Account" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="{Binding Account.DisplayName}" VerticalAlignment="Center" />
+        <TextBlock Classes="caption" Text="{Binding Account.Login, StringFormat='@{0}'}" VerticalAlignment="Center" IsVisible="{Binding Account.IsSignedIn}" />
+        <Button Content="Sign out" Command="{Binding Account.SignOutCommand}" IsVisible="{Binding Account.IsSignedIn}" />
+        <Button Content="Sign in" Command="{Binding Account.SignInCommand}" IsVisible="{Binding Account.IsSignedOut}" />
+      </StackPanel>
+    </Grid>
+
+    <Button Classes="accent" Content="Done" Command="{Binding DoneCommand}" HorizontalAlignment="Right" Margin="0,18,0,0" IsDefault="True" />
+  </StackPanel>
+</Window>

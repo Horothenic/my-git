@@ -47,6 +47,9 @@ public sealed partial class AccountViewModel : ObservableObject
     /// <summary>Raised so the view can close the account menu.</summary>
     public event Action? DialogOpening;
 
+    /// <summary>Closes the account menu (before a window opens from it).</summary>
+    public void CloseMenu() => DialogOpening?.Invoke();
+
     [RelayCommand]
     private Task SignInAsync()
     {

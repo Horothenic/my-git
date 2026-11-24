@@ -271,7 +271,9 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
 
         if (conflict is not null && RepositoryPath is { } repository)
         {
-            foreach (var tool in await _mergeTools.GetToolsForAsync(repository, conflict.Path))
+            // The one picked in Settings comes first (when it's installed and fits the file).
+            var preferred = _settings.Settings.MergeTool;
+            foreach (var tool in (await _mergeTools.GetToolsForAsync(repository, conflict.Path)).OrderByDescending(tool => tool.Name == preferred))
             {
                 MergeTools.Add(tool);
             }
@@ -764,7 +766,16 @@ public sealed partial class ChangesViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasStashes));
     }
 
-    public void OpenInEditor(FileTreeNodeViewModel node) => _shell.OpenFile(FullPath(node));
+    public void OpenInEditor(FileTreeNodeViewModel node) => _shell.OpenInEditor(FullPath(node));
+
+    /// <summary>Folder tree (false) or flat list (true), from Settings.</summary>
+    public void SetFlat(bool flat)
+    {
+        if (IsFlat != flat)
+        {
+            ToggleFlatCommand.Execute(null);
+        }
+    }
 
     public void ShowInExplorer(FileTreeNodeViewModel node) => _shell.ShowInExplorer(FullPath(node));
 

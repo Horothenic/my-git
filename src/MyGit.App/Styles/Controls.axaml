@@ -324,6 +324,27 @@
     <Setter Property="Padding" Value="12,6" />
   </Style>
 
+  <!-- Command palette -->
+  <Style Selector="Border.palette">
+    <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="BoxShadow" Value="0 8 24 0 #66000000" />
+  </Style>
+  <Style Selector="Border.key">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="5,0" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.key TextBlock">
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+  </Style>
+
   <!-- An icon button that throws work away (Discard all) -->
   <Style Selector="Button.danger-icon:pointerover mi|MaterialIcon">
     <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />

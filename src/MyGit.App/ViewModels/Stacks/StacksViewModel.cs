@@ -202,6 +202,9 @@ public sealed partial class StacksViewModel : ObservableObject
 
     public bool HasSelection => SelectedStack is not null;
 
+    /// <summary>The branch stacks start from (GitHub's default branch, else main or master).</summary>
+    public string Trunk => _trunk;
+
     /// <summary>Create PRs only makes sense on GitHub.</summary>
     public bool IsGitHubRepository => _pullRequests.IsGitHubRepository;
 

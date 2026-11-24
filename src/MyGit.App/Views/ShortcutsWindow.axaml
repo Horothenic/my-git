@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mi="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+        xmlns:views="using:MyGit.App.Views"
+        x:Class="MyGit.App.Views.ShortcutsWindow"
+        Icon="/Assets/my-git.ico"
+        Title="Keyboard shortcuts"
+        Width="460" SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="22,18" Spacing="10">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <mi:MaterialIcon Kind="KeyboardOutline" Width="18" Height="18" />
+      <TextBlock FontWeight="SemiBold" FontSize="14" Text="Keyboard shortcuts" VerticalAlignment="Center" />
+    </StackPanel>
+    <ItemsControl x:Name="List">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="views:ShortcutsWindow+Row">
+          <Grid ColumnDefinitions="150,*" Margin="0,3">
+            <Border HorizontalAlignment="Left" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,1">
+              <TextBlock FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" Text="{Binding Keys}" />
+            </Border>
+            <TextBlock Grid.Column="1" Text="{Binding Action}" VerticalAlignment="Center" />
+          </Grid>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    <TextBlock Classes="caption" TextWrapping="Wrap" Text="The file keys (Enter, Ctrl+A, Delete, H) work in the Changes tab's file lists." />
+    <Button x:Name="CloseButton" Classes="accent" Content="Close" HorizontalAlignment="Right" IsDefault="True" IsCancel="True" />
+  </StackPanel>
+</Window>
