@@ -21,11 +21,14 @@ public sealed class ThemeService
     /// <summary>Applies the saved theme. Call once at startup.</summary>
     public void ApplySaved() => Apply(IsDark);
 
-    public void Toggle()
+    public void Toggle() => SetDark(!IsDark);
+
+    /// <summary>Switches to Dark (or Light) and remembers it.</summary>
+    public void SetDark(bool dark)
     {
-        _settingsStore.Settings.Theme = IsDark ? "Light" : "Dark";
+        _settingsStore.Settings.Theme = dark ? "Dark" : "Light";
         _settingsStore.Save();
-        Apply(IsDark);
+        Apply(dark);
     }
 
     private static void Apply(bool dark)

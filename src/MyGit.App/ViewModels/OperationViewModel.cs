@@ -31,6 +31,9 @@ public sealed partial class OperationViewModel : ObservableObject
     /// <summary>Raised with a short success note.</summary>
     public event Action<string>? NoticeRaised;
 
+    /// <summary>Whether "stash my changes" starts ticked (from Settings).</summary>
+    public Func<bool> AutoStashByDefault { get; set; } = () => true;
+
     /// <summary>Raised when a stopped operation ends: true when it was aborted, false when it finished.</summary>
     public event Action<bool>? Ended;
 
@@ -133,7 +136,7 @@ public sealed partial class OperationViewModel : ObservableObject
             "If something goes wrong, Abort puts everything back.",
             "Rebase",
             "Stash my uncommitted changes (new files too) and bring them back after",
-            optionDefault: true,
+            optionDefault: AutoStashByDefault(),
             dangerous: false);
 
         if (!confirmed)
@@ -209,7 +212,7 @@ public sealed partial class OperationViewModel : ObservableObject
             return;
         }
 
-        var window = new InteractiveRebaseViewModel(description, commits, flattensMerges);
+        var window = new InteractiveRebaseViewModel(description, commits, flattensMerges) { AutoStash = AutoStashByDefault() };
         if (!await _dialogs.ShowInteractiveRebaseAsync(window))
         {
             return;

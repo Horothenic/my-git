@@ -16,4 +16,16 @@ public sealed class AppSettings
 
     /// <summary>"Dark" or "Light".</summary>
     public string Theme { get; set; } = "Dark";
+
+    /// <summary>The code editor for "Open in editor" (an id like "vscode"); null picks the first one installed.</summary>
+    public string? Editor { get; set; }
+
+    /// <summary>The terminal for "Open in terminal" (an id like "windowsterminal"); null picks the first one installed.</summary>
+    public string? Terminal { get; set; }
+
+    /// <summary>The merge tool listed first for conflicts (its name, e.g. "VS Code"); null lists them as found.</summary>
+    public string? MergeTool { get; set; }
+
+    /// <summary>Whether "stash my changes and bring them back" starts ticked before a rebase.</summary>
+    public bool AutoStashByDefault { get; set; } = true;
 }

@@ -51,13 +51,17 @@ public sealed class App : Application
             themeService.ApplySaved();
 
             var window = new MainWindow();
-            var shell = new ShellService(window);
+            var shell = new ShellService(window, settingsStore);
 
+            // Settings needs parts of the main view model, which needs the dialogs: filled in right below.
+            MainWindowViewModel? main = null;
             var dialogs = new DialogService(
                 window,
                 createSignIn: () => new SignInViewModel(deviceFlow, accounts, shell),
                 createClone: folderPicker => new CloneViewModel(
-                    cloneService, gitHubRepositories, accounts, repositoryStore, repositoryService, settingsStore, folderPicker));
+                    cloneService, gitHubRepositories, accounts, repositoryStore, repositoryService, settingsStore, folderPicker),
+                createSettings: folderPicker => new SettingsViewModel(
+                    settingsStore, themeService, main!.Account, folderPicker, flat => main!.Changes.SetFlat(flat)));
 
             var viewModel = new MainWindowViewModel(
                 repositoryStore,
@@ -88,6 +92,10 @@ public sealed class App : Application
 
             // Signing in or out changes which pull requests we can see.
             accounts.AccountChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() => _ = viewModel.PullRequests.OnAccountChangedAsync());
+
+            main = viewModel;
+            viewModel.UseShell(shell);
+            viewModel.Operation.AutoStashByDefault = () => settingsStore.Settings.AutoStashByDefault;
 
             window.DataContext = viewModel;
             desktop.MainWindow = window;

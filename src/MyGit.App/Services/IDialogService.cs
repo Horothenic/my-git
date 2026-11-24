@@ -32,6 +32,12 @@ public interface IDialogService
     /// <summary>Shows "New stack from existing branches". Returns true when the user pressed Create stack.</summary>
     Task<bool> ShowNewStackAsync(ViewModels.Stacks.NewStackViewModel viewModel);
 
+    /// <summary>Shows the Settings window (changes apply as they're made).</summary>
+    Task ShowSettingsAsync();
+
+    /// <summary>Shows the list of keyboard shortcuts.</summary>
+    Task ShowShortcutsAsync();
+
     /// <summary>Asks how far to reset (soft / mixed / hard). Returns null when cancelled.</summary>
     Task<MyGit.Core.History.ResetMode?> AskResetAsync(string branch, string shortSha, int commitsUndone);
 }
