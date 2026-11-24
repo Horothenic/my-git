@@ -127,6 +127,12 @@ public sealed class MergeToolService
         }
 
         var found = new List<(string, string, bool)>();
+        if (OperatingSystem.IsMacOS())
+        {
+            _installed = MacTools();
+            return _installed;
+        }
+
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
 
@@ -151,6 +157,30 @@ public sealed class MergeToolService
         }
 
         _installed = found;
+        return found;
+    }
+
+    private static List<(string Name, string Path, bool UnityOnly)> MacTools()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var found = new List<(string, string, bool)>();
+
+        if (FirstExisting("/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code") is { } code)
+        {
+            found.Add(("VS Code", code, false));
+        }
+
+        if (FirstExisting("/Applications/Rider.app/Contents/MacOS/rider", Path.Combine(home, "Applications", "Rider.app", "Contents", "MacOS", "rider")) is { } rider)
+        {
+            found.Add(("Rider", rider, false));
+        }
+
+        // Unity Hub keeps one folder per editor version; use the newest.
+        if (Newest("/Applications/Unity/Hub/Editor", "*", Path.Combine("Unity.app", "Contents", "Tools", "UnityYAMLMerge")) is { } unity)
+        {
+            found.Add(("UnityYAMLMerge", unity, true));
+        }
+
         return found;
     }
 

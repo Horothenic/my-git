@@ -9,6 +9,7 @@ The approved My Git app icon: a near-black rounded square, a white outline crest
 | Path | What it is |
 |---|---|
 | `my-git.ico` | Windows icon, 8 sizes (16, 20, 24, 32, 40, 48, 64, 256), each one drawn separately for that size |
+| `my-git.icns` | macOS icon (16 to 1024 px) on Apple's grid: the rounded square at 824/1024 with a soft shadow, so it sits right in the Dock. `png/my-git-mac-1024.png` is the same, as a PNG |
 | `png/my-git-{16…1024}.png` | Transparent PNGs, for in-app use, README, installer, store |
 | `svg/my-git-icon.svg` | Master vector, for 48 px and larger |
 | `svg/my-git-icon-medium.svg` | Thicker strokes, for 24–40 px |

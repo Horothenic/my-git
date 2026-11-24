@@ -1,12 +1,14 @@
 name: Build
 
+# Every pushed branch and every PR: build and test on Windows and on a Mac (Apple Silicon).
+# The Mac job also uploads a ready-to-run "My Git.app" (see the run's Artifacts) for trying it out.
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,3 +25,42 @@ jobs:
 
       - name: Test
         run: dotnet test MyGit.slnx --no-build --configuration Release
+
+  mac:
+    runs-on: macos-latest # Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Git identity for the tests
+        run: |
+          git config --global user.name "My Git tests"
+          git config --global user.email "tests@example.com"
+
+      - name: Test
+        run: dotnet test MyGit.slnx --configuration Release
+
+      - name: Publish for Apple Silicon
+        run: dotnet publish src/MyGit.App/MyGit.App.csproj --configuration Release --runtime osx-arm64 --self-contained --output publish
+
+      # A Mac app is a folder: My Git.app/Contents/{Info.plist, MacOS/<the app>, Resources/<the icon>}.
+      - name: Make My Git.app
+        run: |
+          app="My Git.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+          cp -R publish/. "$app/Contents/MacOS/"
+          sed "s/VERSION/0.0.0/g" build/macos/Info.plist > "$app/Contents/Info.plist"
+          cp branding/my-git.icns "$app/Contents/Resources/MyGit.icns"
+          chmod +x "$app/Contents/MacOS/MyGit"
+          # Apple Silicon only runs signed code; an ad-hoc signature is enough on your own Mac.
+          codesign --force --deep --sign - "$app"
+          ditto -c -k --keepParent "$app" MyGit-mac.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MyGit-mac
+          path: MyGit-mac.zip
+          retention-days: 14

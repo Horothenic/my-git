@@ -19,7 +19,7 @@
         <DataTemplate x:DataType="views:ShortcutsWindow+Row">
           <Grid ColumnDefinitions="150,*" Margin="0,3">
             <Border HorizontalAlignment="Left" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="6,1">
-              <TextBlock FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" Text="{Binding Keys}" />
+              <TextBlock FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12" Text="{Binding Keys}" />
             </Border>
             <TextBlock Grid.Column="1" Text="{Binding Action}" VerticalAlignment="Center" />
           </Grid>

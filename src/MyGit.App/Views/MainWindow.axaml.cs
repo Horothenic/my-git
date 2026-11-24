@@ -54,6 +54,8 @@ public sealed partial class MainWindow : Window
             ViewModel.DialogOpening += () => RepositoryButton.Flyout?.Hide();
             ViewModel.Account.DialogOpening += () => AccountButton.Flyout?.Hide();
 
+            AddShortcuts(ViewModel);
+
             ViewModel.Palette.PropertyChanged += (_, args) =>
             {
                 if (args.PropertyName == nameof(CommandPaletteViewModel.IsOpen) && ViewModel.Palette.IsOpen)
@@ -64,10 +66,40 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    // Ctrl+B / Ctrl+R: the Branch / Repository dropdown, ready to type a filter.
+    // Window-wide shortcuts, with ⌘ instead of Ctrl on a Mac (listed in MainWindowViewModel.Shortcuts).
+    private void AddShortcuts(MainWindowViewModel viewModel)
+    {
+        var command = Hotkeys.Command;
+        void Add(Key key, KeyModifiers modifiers, System.Windows.Input.ICommand action, string? parameter = null)
+        {
+            var binding = new KeyBinding { Gesture = new KeyGesture(key, modifiers), Command = action };
+            if (parameter is not null)
+            {
+                binding.CommandParameter = parameter;
+            }
+
+            KeyBindings.Add(binding);
+        }
+
+        Add(Key.P, command | KeyModifiers.Shift, viewModel.OpenPaletteCommand);
+        Add(Key.F, command | KeyModifiers.Shift, viewModel.Sync.FetchCommand);
+        Add(Key.L, command | KeyModifiers.Shift, viewModel.Sync.PullCommand);
+        Add(Key.U, command | KeyModifiers.Shift, viewModel.Sync.PushCommand);
+        Add(Key.N, command | KeyModifiers.Shift, viewModel.Branches.NewBranchCommand);
+        Add(Key.F5, KeyModifiers.None, viewModel.RefreshCommand);
+        Add(Key.D1, command, viewModel.SelectTabCommand, "0");
+        Add(Key.D2, command, viewModel.SelectTabCommand, "1");
+        Add(Key.D3, command, viewModel.SelectTabCommand, "2");
+        if (Hotkeys.IsMac)
+        {
+            Add(Key.OemComma, command, viewModel.OpenSettingsCommand); // ⌘, is Settings in every Mac app
+        }
+    }
+
+    // Ctrl+B / Ctrl+R (⌘B / ⌘R): the Branch / Repository dropdown, ready to type a filter.
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.KeyModifiers != KeyModifiers.Control || ViewModel is not { HasRepository: true } && e.Key == Key.B)
+        if (e.KeyModifiers != Hotkeys.Command || ViewModel is not { HasRepository: true } && e.Key == Key.B)
         {
             return;
         }

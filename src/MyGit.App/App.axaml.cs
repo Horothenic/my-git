@@ -1,3 +1,5 @@
+using Avalonia.Input;
+using Avalonia.Controls;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -33,7 +35,11 @@ public sealed class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Plain constructor wiring for now; a DI container can come later if it earns its keep.
-            var accounts = new AccountManager(new WindowsCredentialTokenStore());
+            // The token lives in the Keychain on a Mac, in Credential Manager on Windows.
+            ITokenStore tokenStore = OperatingSystem.IsWindowsVersionAtLeast(5, 1, 2600) ? new WindowsCredentialTokenStore()
+                : OperatingSystem.IsMacOS() ? new MacKeychainTokenStore()
+                : throw new PlatformNotSupportedException("My Git runs on Windows and macOS.");
+            var accounts = new AccountManager(tokenStore);
             var git = new GitRunner(accounts); // every git command gets the GitHub token
             var settingsStore = new AppSettingsStore(AppSettingsStore.DefaultFilePath);
             var repositoryStore = new RepositoryStore(RepositoryStore.DefaultFilePath);
@@ -98,6 +104,11 @@ public sealed class App : Application
             viewModel.UseUpdates(new UpdatesViewModel(accounts));
             viewModel.Operation.AutoStashByDefault = () => settingsStore.Settings.AutoStashByDefault;
 
+            if (OperatingSystem.IsMacOS())
+            {
+                AddMacMenu(viewModel);
+            }
+
             window.DataContext = viewModel;
             desktop.MainWindow = window;
 
@@ -106,5 +117,20 @@ public sealed class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    // The Mac menu bar's "My Git" menu. macOS adds Hide, Hide Others and Quit (⌘Q) itself.
+    private void AddMacMenu(MainWindowViewModel viewModel)
+    {
+        var menu = new NativeMenu();
+        menu.Add(new NativeMenuItem("Settings…") { Command = viewModel.OpenSettingsCommand, Gesture = new KeyGesture(Key.OemComma, KeyModifiers.Meta) });
+        menu.Add(new NativeMenuItem("Command Palette") { Command = viewModel.OpenPaletteCommand, Gesture = new KeyGesture(Key.P, KeyModifiers.Meta | KeyModifiers.Shift) });
+        menu.Add(new NativeMenuItem("Keyboard Shortcuts") { Command = viewModel.ShowShortcutsCommand });
+        if (viewModel.Updates is { } updates)
+        {
+            menu.Add(new NativeMenuItem("Check for Updates…") { Command = updates.CheckNowCommand });
+        }
+
+        NativeMenu.SetMenu(this, menu);
     }
 }

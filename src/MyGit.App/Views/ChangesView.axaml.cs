@@ -156,7 +156,7 @@ public sealed partial class ChangesView : UserControl
         var tree = staged ? StagedTree : UnstagedTree;
 
         // Ctrl+A selects every file shown (then Enter stages or unstages them all).
-        if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.A)
+        if (e.KeyModifiers == Services.Hotkeys.Command && e.Key == Key.A)
         {
             tree.SelectAll();
             e.Handled = true;
@@ -196,7 +196,7 @@ public sealed partial class ChangesView : UserControl
 
     private void OnViewKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.KeyModifiers != KeyModifiers.Control || ViewModel is not { } viewModel)
+        if (e.KeyModifiers != Services.Hotkeys.Command || ViewModel is not { } viewModel)
         {
             return;
         }

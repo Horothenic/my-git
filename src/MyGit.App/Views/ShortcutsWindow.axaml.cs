@@ -14,7 +14,7 @@ public sealed partial class ShortcutsWindow : Window
     {
         InitializeComponent();
         TitleBarIcon.Attach(this);
-        List.ItemsSource = MainWindowViewModel.Shortcuts.Select(shortcut => new Row(shortcut.Keys, shortcut.Action)).ToList();
+        List.ItemsSource = MainWindowViewModel.Shortcuts.Select(shortcut => new Row(Hotkeys.Show(shortcut.Keys), shortcut.Action)).ToList();
         CloseButton.Click += (_, _) => Close();
     }
 }

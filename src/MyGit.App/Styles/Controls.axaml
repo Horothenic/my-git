@@ -217,7 +217,7 @@
 
   <!-- M / A / D / ? / ! letters -->
   <Style Selector="TextBlock.status-letter">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Width" Value="14" />
     <Setter Property="TextAlignment" Value="Center" />
@@ -258,7 +258,7 @@
     <Setter Property="Margin" Value="0,6,0,0" />
   </Style>
   <Style Selector="TextBlock.hunk-title">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource HunkHeaderTextBrush}" />
   </Style>
@@ -294,14 +294,14 @@
   </Style>
 
   <Style Selector="TextBlock.line-number">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource TextMutedBrush}" />
     <Setter Property="TextAlignment" Value="Right" />
     <Setter Property="Padding" Value="0,1,10,1" />
   </Style>
   <Style Selector="TextBlock.code">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="TextWrapping" Value="Wrap" />
     <Setter Property="Padding" Value="0,1,8,1" />
@@ -340,7 +340,7 @@
     <Setter Property="VerticalAlignment" Value="Center" />
   </Style>
   <Style Selector="Border.key TextBlock">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="11" />
     <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
   </Style>
@@ -433,13 +433,13 @@
 
   <!-- Built-in conflict resolver (VS Code style) -->
   <Style Selector="SelectableTextBlock.code">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="12,0" />
     <Setter Property="LineHeight" Value="19" />
   </Style>
   <Style Selector="TextBlock.conflict-header">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="Padding" Value="12,1" />
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
@@ -465,7 +465,7 @@
     <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
   </Style>
   <Style Selector="TextBox.conflict-result">
-    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+    <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Menlo, monospace" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="TextWrapping" Value="NoWrap" />
     <Setter Property="CornerRadius" Value="0" />

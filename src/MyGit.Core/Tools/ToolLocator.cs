@@ -26,6 +26,17 @@ public static class ToolLocator
 
     private static IReadOnlyList<ExternalTool> FindEditors()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            return FindMacApps(
+                ("vscode", "VS Code", "Visual Studio Code.app"),
+                ("cursor", "Cursor", "Cursor.app"),
+                ("rider", "Rider", "Rider.app"),
+                ("zed", "Zed", "Zed.app"),
+                ("sublime", "Sublime Text", "Sublime Text.app"),
+                ("xcode", "Xcode", "Xcode.app"));
+        }
+
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         var found = new List<ExternalTool>();
@@ -44,6 +55,15 @@ public static class ToolLocator
 
     private static IReadOnlyList<ExternalTool> FindTerminals()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            return FindMacApps(
+                ("iterm", "iTerm", "iTerm.app"),
+                ("warp", "Warp", "Warp.app"),
+                ("ghostty", "Ghostty", "Ghostty.app"),
+                ("terminal", "Terminal", "Utilities/Terminal.app"));
+        }
+
         var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         var system = Environment.GetFolderPath(Environment.SpecialFolder.System);
@@ -56,6 +76,19 @@ public static class ToolLocator
         Add(found, "cmd", "Command Prompt", Path.Combine(system, "cmd.exe"));
 
         return found;
+    }
+
+    // On a Mac, ExternalTool.Path is the .app bundle (opened with "open -a"). Looked for in /Applications,
+    // ~/Applications (where JetBrains Toolbox puts Rider) and /System/Applications (Terminal).
+    private static IReadOnlyList<ExternalTool> FindMacApps(params (string Id, string Name, string Bundle)[] apps)
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        string[] folders = ["/Applications", Path.Combine(home, "Applications"), "/System/Applications"];
+        return apps
+            .Select(app => (app, Path: folders.Select(folder => Path.Combine(folder, app.Bundle)).FirstOrDefault(Directory.Exists)))
+            .Where(found => found.Path is not null)
+            .Select(found => new ExternalTool(found.app.Id, found.app.Name, found.Path!))
+            .ToList();
     }
 
     private static void Add(List<ExternalTool> found, string id, string name, params string?[] candidates)

@@ -22,10 +22,7 @@ public sealed class HiddenFilesStore
         Load();
     }
 
-    public static string DefaultFilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "MyGit",
-        "hidden.json");
+    public static string DefaultFilePath => Platform.AppPaths.DataFile("hidden.json");
 
     /// <summary>
     /// The key a repository's hidden list is saved under: its normalized GitHub address

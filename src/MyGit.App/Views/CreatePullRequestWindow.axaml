@@ -35,7 +35,7 @@
       <TextBlock Classes="caption" Text="Description" VerticalAlignment="Bottom" />
     </DockPanel>
     <TextBox x:Name="BodyBox" Text="{Binding Body}" AcceptsReturn="True" AcceptsTab="True" TextWrapping="Wrap"
-             Height="240" FontFamily="Cascadia Mono, Consolas, monospace" FontSize="12" />
+             Height="240" FontFamily="Cascadia Mono, Consolas, Menlo, monospace" FontSize="12" />
     <Button x:Name="InsertCommitsButton" Classes="link" Content="Insert commit list" HorizontalAlignment="Left" Padding="0,2"
             IsVisible="{Binding IsTemplateSelected}" ToolTip.Tip="Adds the commits where the cursor is in the description" />
 

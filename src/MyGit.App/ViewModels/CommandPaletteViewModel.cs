@@ -15,7 +15,7 @@ public sealed record PaletteItem(string Title, MaterialIconKind Icon, ICommand C
     /// <summary>Things that can't run right now (e.g. Push with nothing to push) are shown faded.</summary>
     public double Opacity => CanRun ? 1 : 0.45;
 
-    public string Right => Shortcut ?? Hint ?? string.Empty;
+    public string Right => Shortcut is { } shortcut ? Services.Hotkeys.Show(shortcut) : Hint ?? string.Empty;
 
     public bool HasShortcut => Shortcut is not null;
 }

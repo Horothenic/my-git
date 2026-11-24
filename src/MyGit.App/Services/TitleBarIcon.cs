@@ -22,6 +22,11 @@ public static class TitleBarIcon
     /// <summary>Call from a window's constructor.</summary>
     public static void Attach(Window window)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return; // a Mac shows the app's icon in the Dock instead
+        }
+
         window.Opened += (_, _) => Apply(window);
         window.ActualThemeVariantChanged += (_, _) => Apply(window);
     }

@@ -53,7 +53,7 @@ public sealed partial class DiffView : UserControl
             return;
         }
 
-        var ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        var ctrl = e.KeyModifiers.HasFlag(Services.Hotkeys.Command); // ⌘ on a Mac
         var shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         viewModel.Pick(hit.Row, hit.Side, ctrl, shift);
 

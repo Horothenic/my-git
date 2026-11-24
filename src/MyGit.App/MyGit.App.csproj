@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <!-- My Git is a Windows app (Credential Manager, Explorer integration). -->
-    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <!-- One build for Windows and macOS: Windows-only parts (Credential Manager, Explorer, the title-bar icon)
+         check the operating system at run time. -->
     <AssemblyName>MyGit</AssemblyName>
     <RootNamespace>MyGit.App</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>

@@ -11,17 +11,6 @@
         MinWidth="820" MinHeight="500"
         WindowStartupLocation="CenterScreen">
 
-  <Window.KeyBindings>
-    <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding OpenPaletteCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding Sync.FetchCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+L" Command="{Binding Sync.PullCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+U" Command="{Binding Sync.PushCommand}" />
-    <KeyBinding Gesture="Ctrl+Shift+N" Command="{Binding Branches.NewBranchCommand}" />
-    <KeyBinding Gesture="F5" Command="{Binding RefreshCommand}" />
-    <KeyBinding Gesture="Ctrl+D1" Command="{Binding SelectTabCommand}" CommandParameter="0" />
-    <KeyBinding Gesture="Ctrl+D2" Command="{Binding SelectTabCommand}" CommandParameter="1" />
-    <KeyBinding Gesture="Ctrl+D3" Command="{Binding SelectTabCommand}" CommandParameter="2" />
-  </Window.KeyBindings>
 
   <Panel>
   <DockPanel>
