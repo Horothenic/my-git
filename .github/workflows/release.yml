@@ -1,0 +1,46 @@
+name: Release
+
+# Push a version tag to publish a release: git tag v1.2.0 && git push origin v1.2.0
+# The release gets Setup.exe (first install) and the update packages the installed app downloads.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # create the GitHub Release and upload its files
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Version from the tag
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Test
+        run: dotnet test MyGit.slnx --configuration Release
+
+      - name: Publish
+        run: dotnet publish src/MyGit.App/MyGit.App.csproj --configuration Release --runtime win-x64 --self-contained -p:Version=${{ env.VERSION }} --output publish
+
+      - name: Install vpk
+        run: dotnet tool install --global vpk --version 1.2.161
+
+      # The previous release lets vpk build a small "delta" update (only what changed) next to the full one.
+      - name: Download the previous release
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Pack
+        run: vpk pack --packId MyGit --packVersion ${{ env.VERSION }} --packDir publish --mainExe MyGit.exe --packTitle "My Git" --packAuthors Horothenic --icon branding/my-git.ico
+
+      - name: Publish the GitHub Release
+        run: vpk upload github --repoUrl https://github.com/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} --publish --releaseName "My Git ${{ env.VERSION }}" --tag ${{ github.ref_name }}

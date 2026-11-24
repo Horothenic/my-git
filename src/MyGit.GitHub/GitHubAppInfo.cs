@@ -21,5 +21,8 @@ public static class GitHubAppInfo
     /// </summary>
     public static readonly IReadOnlyList<string> Scopes = ["repo", "workflow", "read:user"];
 
+    /// <summary>Where My Git's own releases (Setup.exe and updates) are published.</summary>
+    public const string ReleasesRepository = "https://github.com/Horothenic/my-git";
+
     public static bool IsConfigured => ClientId.Length > 0;
 }

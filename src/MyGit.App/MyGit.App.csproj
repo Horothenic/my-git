@@ -8,6 +8,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\my-git.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Releases pass the tag's version (dotnet publish -p:Version=1.2.0); local builds are 0.0.0. -->
+    <Version Condition="'$(Version)' == ''">0.0.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -16,6 +18,8 @@
     <PackageReference Include="Avalonia.Fonts.Inter" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Material.Icons.Avalonia" />
+    <!-- Installer and self-updates (Setup.exe, GitHub Releases); see Services/UpdateService.cs. -->
+    <PackageReference Include="Velopack" />
   </ItemGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
